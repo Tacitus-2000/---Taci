@@ -1,0 +1,26 @@
+---
+description: Project communication preference for checks and server startup guidance
+alwaysApply: true
+---
+
+# Project Communication Memory
+
+When reporting verification or check results for this project:
+
+- Always include the local website URL the user should open, when available.
+- Always include how to start the development server.
+- Keep the instructions concise and actionable.
+
+## Standard development server command
+
+```bash
+npm run dev
+```
+
+## Default local URL
+
+```text
+http://localhost:3000
+```
+
+If the port changes, report the actual URL shown by the app.

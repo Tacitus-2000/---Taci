@@ -1,0 +1,84 @@
+{
+  "agents": {
+    "project-manager": {
+      "name": "项目经理",
+      "model": "claude-opus-4-7",
+      "role": "规划、协调和决策",
+      "config_file": ".claude/agents/project-manager.md"
+    },
+    "developer": {
+      "name": "程序员",
+      "model": "deepseek-v4-flash",
+      "base_url": "https://api.deepseek.com/anthropic",
+      "role": "代码实现和技术开发",
+      "config_file": ".claude/agents/developer.md"
+    },
+    "reviewer": {
+      "name": "审核员",
+      "model": "claude-opus-4-7",
+      "role": "代码审查和质量把控",
+      "config_file": ".claude/agents/reviewer.md"
+    }
+  },
+  "workflows": {
+    "feature-development": {
+      "name": "功能开发流程",
+      "steps": [
+        {
+          "agent": "project-manager",
+          "action": "分析需求并制定计划"
+        },
+        {
+          "agent": "developer",
+          "action": "实现功能代码"
+        },
+        {
+          "agent": "reviewer",
+          "action": "审查代码质量"
+        },
+        {
+          "agent": "developer",
+          "action": "根据审查意见改进"
+        },
+        {
+          "agent": "project-manager",
+          "action": "验收并确认完成"
+        }
+      ]
+    },
+    "bug-fix": {
+      "name": "Bug 修复流程",
+      "steps": [
+        {
+          "agent": "project-manager",
+          "action": "分析问题和影响范围"
+        },
+        {
+          "agent": "developer",
+          "action": "定位并修复问题"
+        },
+        {
+          "agent": "reviewer",
+          "action": "验证修复效果"
+        }
+      ]
+    },
+    "code-review": {
+      "name": "代码审查流程",
+      "steps": [
+        {
+          "agent": "reviewer",
+          "action": "审查代码并提供反馈"
+        },
+        {
+          "agent": "developer",
+          "action": "根据反馈改进代码"
+        },
+        {
+          "agent": "project-manager",
+          "action": "确认改进完成"
+        }
+      ]
+    }
+  }
+}
