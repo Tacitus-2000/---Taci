@@ -4,6 +4,17 @@
  */
 
 export type VisibilityFlag = boolean;
+export type UserRole = 'admin' | 'client';
+
+export interface User {
+  id: string;
+  email: string;
+  password_hash: string;
+  role: UserRole;
+  name: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export type WorkflowStatus = 'pending' | 'running' | 'completed' | 'failed';
 export type AgentRunStatus = 'pending' | 'running' | 'completed' | 'failed';
@@ -188,6 +199,7 @@ export interface AgentExecution {
 }
 
 export interface Database {
+  users: User;
   profiles: Profile;
   industries: Industry;
   clients: Client;
@@ -202,6 +214,7 @@ export interface Database {
   agent_executions: AgentExecution;
 }
 
+export type UserInsert = Omit<User, 'id' | 'created_at' | 'updated_at'>;
 export type ProfileInsert = Omit<Profile, 'id' | 'created_at' | 'updated_at'>;
 export type IndustryInsert = Omit<Industry, 'id' | 'created_at' | 'updated_at'>;
 export type ClientInsert = Omit<Client, 'id' | 'created_at' | 'updated_at'>;
@@ -215,6 +228,7 @@ export type PromptTemplateInsert = Omit<PromptTemplate, 'id' | 'created_at' | 'u
 export type WorkflowInsert = Omit<Workflow, 'id' | 'created_at' | 'updated_at'>;
 export type AgentExecutionInsert = Omit<AgentExecution, 'id'>;
 
+export type UserUpdate = Partial<Omit<User, 'id' | 'created_at'>>;
 export type ProfileUpdate = Partial<Omit<Profile, 'id' | 'created_at'>>;
 export type IndustryUpdate = Partial<Omit<Industry, 'id' | 'created_at'>>;
 export type ClientUpdate = Partial<Omit<Client, 'id' | 'created_at'>>;
