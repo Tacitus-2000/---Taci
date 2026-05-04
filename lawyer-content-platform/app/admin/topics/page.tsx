@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import { PlatformShell } from '@/app/_components/PlatformShell';
 import {
-  useClients,
-  useCreateClient,
-  useUpdateClient,
-  useDeleteClient,
+  useAdminTopics,
+  useCreateTopic,
+  useUpdateTopic,
+  useDeleteTopic,
 } from '@/lib/hooks/useAdminData';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +23,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -31,42 +33,42 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Users,
+  Lightbulb,
   Plus,
   Edit,
   Trash2,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import type { Client } from '@/types/database';
-import type { ClientCreateRequest, ClientUpdateRequest } from '@/types/admin';
+import type { Topic } from '@/types/database';
+import type { TopicCreateRequest, TopicUpdateRequest } from '@/types/admin';
 
 const ITEMS_PER_PAGE = 20;
 
-export default function AdminClientsPage() {
+export default function AdminTopicsPage() {
   const [page, setPage] = useState(1);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
 
-  const { data, isLoading, error, refetch } = useClients({
+  const { data, isLoading, error, refetch } = useAdminTopics({
     page,
     limit: ITEMS_PER_PAGE,
   });
 
-  const createMutation = useCreateClient();
-  const updateMutation = useUpdateClient(selectedClient?.id || '');
-  const deleteMutation = useDeleteClient();
+  const createMutation = useCreateTopic();
+  const updateMutation = useUpdateTopic(selectedTopic?.id || '');
+  const deleteMutation = useDeleteTopic();
 
   if (isLoading) {
     return (
       <PlatformShell
         badge="Admin"
-        title="客户管理"
-        description="管理所有客户信息和状态。"
+        title="选题管理"
+        description="管理所有选题内容和审核状态。"
       >
-        <ClientsSkeleton />
+        <TopicsSkeleton />
       </PlatformShell>
     );
   }
@@ -75,78 +77,78 @@ export default function AdminClientsPage() {
     return (
       <PlatformShell
         badge="Admin"
-        title="客户管理"
-        description="管理所有客户信息和状态。"
+        title="选题管理"
+        description="管理所有选题内容和审核状态。"
       >
         <ErrorMessage message={error.message} onRetry={() => refetch()} />
       </PlatformShell>
     );
   }
 
-  const clients = data?.data || [];
+  const topics = data?.data || [];
   const meta = data?.meta;
   const hasNextPage = meta ? meta.page < meta.totalPages : false;
   const hasPrevPage = meta ? meta.page > 1 : false;
 
-  const handleCreate = async (formData: ClientCreateRequest) => {
+  const handleCreate = async (formData: TopicCreateRequest) => {
     await createMutation.mutateAsync(formData);
     setIsCreateDialogOpen(false);
   };
 
-  const handleUpdate = async (formData: ClientUpdateRequest) => {
-    if (!selectedClient) return;
+  const handleUpdate = async (formData: TopicUpdateRequest) => {
+    if (!selectedTopic) return;
     await updateMutation.mutateAsync(formData);
     setIsEditDialogOpen(false);
-    setSelectedClient(null);
+    setSelectedTopic(null);
   };
 
   const handleDelete = async () => {
-    if (!selectedClient) return;
-    await deleteMutation.mutateAsync(selectedClient.id);
+    if (!selectedTopic) return;
+    await deleteMutation.mutateAsync(selectedTopic.id);
     setIsDeleteDialogOpen(false);
-    setSelectedClient(null);
+    setSelectedTopic(null);
   };
 
   return (
     <PlatformShell
       badge="Admin"
-      title="客户管理"
-      description="管理所有客户信息和状态。"
+      title="选题管理"
+      description="管理所有选题内容和审核状态。"
     >
       <div className="space-y-6">
         {/* 操作按钮 */}
         <div className="flex items-center justify-between">
           <div className="text-sm text-slate-600">
-            共 {meta?.total || 0} 个客户
+            共 {meta?.total || 0} 个选题
           </div>
           <Button
             onClick={() => setIsCreateDialogOpen(true)}
             className="flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
-            新建客户
+            新建选题
           </Button>
         </div>
 
-        {/* 客户列表 */}
-        {clients.length === 0 ? (
+        {/* 选题列表 */}
+        {topics.length === 0 ? (
           <EmptyState
-            title="暂无客户"
-            message="还没有创建任何客户"
-            icon={<Users className="h-16 w-16" />}
+            title="暂无选题"
+            message="还没有创建任何选题"
+            icon={<Lightbulb className="h-16 w-16" />}
           />
         ) : (
           <div className="space-y-4">
-            {clients.map((client) => (
-              <ClientCard
-                key={client.id}
-                client={client}
+            {topics.map((topic) => (
+              <TopicCard
+                key={topic.id}
+                topic={topic}
                 onEdit={() => {
-                  setSelectedClient(client);
+                  setSelectedTopic(topic);
                   setIsEditDialogOpen(true);
                 }}
                 onDelete={() => {
-                  setSelectedClient(client);
+                  setSelectedTopic(topic);
                   setIsDeleteDialogOpen(true);
                 }}
               />
@@ -181,7 +183,7 @@ export default function AdminClientsPage() {
       </div>
 
       {/* 创建对话框 */}
-      <CreateClientDialog
+      <CreateTopicDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
         onSubmit={handleCreate}
@@ -189,22 +191,22 @@ export default function AdminClientsPage() {
       />
 
       {/* 编辑对话框 */}
-      {selectedClient && (
-        <EditClientDialog
+      {selectedTopic && (
+        <EditTopicDialog
           open={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
-          client={selectedClient}
+          topic={selectedTopic}
           onSubmit={handleUpdate}
           isLoading={updateMutation.isPending}
         />
       )}
 
       {/* 删除确认对话框 */}
-      {selectedClient && (
-        <DeleteClientDialog
+      {selectedTopic && (
+        <DeleteTopicDialog
           open={isDeleteDialogOpen}
           onOpenChange={setIsDeleteDialogOpen}
-          client={selectedClient}
+          topic={selectedTopic}
           onConfirm={handleDelete}
           isLoading={deleteMutation.isPending}
         />
@@ -213,55 +215,47 @@ export default function AdminClientsPage() {
   );
 }
 
-function ClientCard({
-  client,
+function TopicCard({
+  topic,
   onEdit,
   onDelete,
 }: {
-  client: Client;
+  topic: Topic;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const statusConfig = {
-    active: { label: '活跃', color: 'bg-green-100 text-green-700' },
-    inactive: { label: '未激活', color: 'bg-slate-100 text-slate-700' },
-    suspended: { label: '已暂停', color: 'bg-red-100 text-red-700' },
+    draft: { label: '草稿', color: 'bg-slate-100 text-slate-700' },
+    approved: { label: '已通过', color: 'bg-green-100 text-green-700' },
+    rejected: { label: '已拒绝', color: 'bg-red-100 text-red-700' },
   };
 
-  const config = statusConfig[client.status as keyof typeof statusConfig] || {
-    label: client.status,
-    color: 'bg-slate-100 text-slate-700',
-  };
+  const config = statusConfig[topic.status];
 
   return (
     <Card className="rounded-[2rem] border-slate-200 p-6">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 space-y-3">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <h3 className="text-lg font-semibold text-slate-900">
-              {client.name}
+              {topic.title}
             </h3>
             <Badge className={config.color}>{config.label}</Badge>
+            {topic.visible_to_client && (
+              <Badge className="bg-blue-100 text-blue-700">客户可见</Badge>
+            )}
+            {topic.internal_only && (
+              <Badge className="bg-amber-100 text-amber-700">仅内部</Badge>
+            )}
           </div>
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          {topic.direction && (
             <div>
-              <span className="text-slate-500">套餐：</span>
-              <span className="text-slate-700">
-                {client.package_name || '未设置'}
-              </span>
+              <span className="text-sm text-slate-500">内容方向：</span>
+              <p className="text-slate-700 mt-1">{topic.direction}</p>
             </div>
-            <div>
-              <span className="text-slate-500">内容进度：</span>
-              <span className="text-slate-700">
-                {client.content_progress || 0}%
-              </span>
-            </div>
-            <div className="col-span-2">
-              <span className="text-slate-500">创建时间：</span>
-              <span className="text-slate-700">
-                {new Date(client.created_at).toLocaleDateString('zh-CN')}
-              </span>
-            </div>
+          )}
+          <div className="text-xs text-slate-400">
+            创建于 {new Date(topic.created_at).toLocaleDateString('zh-CN')}
           </div>
         </div>
         <div className="flex gap-2">
@@ -277,7 +271,7 @@ function ClientCard({
   );
 }
 
-function CreateClientDialog({
+function CreateTopicDialog({
   open,
   onOpenChange,
   onSubmit,
@@ -285,13 +279,15 @@ function CreateClientDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: ClientCreateRequest) => void;
+  onSubmit: (data: TopicCreateRequest) => void;
   isLoading: boolean;
 }) {
-  const [formData, setFormData] = useState<ClientCreateRequest>({
-    name: '',
-    package_name: null,
-    status: 'active',
+  const [formData, setFormData] = useState<TopicCreateRequest>({
+    client_id: '',
+    title: '',
+    status: 'draft',
+    visible_to_client: true,
+    internal_only: false,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -301,32 +297,45 @@ function CreateClientDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>新建客户</DialogTitle>
+          <DialogTitle>新建选题</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">客户名称</Label>
+            <Label htmlFor="client_id">客户 ID</Label>
             <Input
-              id="name"
-              value={formData.name}
+              id="client_id"
+              value={formData.client_id}
               onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
+                setFormData({ ...formData, client_id: e.target.value })
               }
-              placeholder="请输入客户名称"
+              placeholder="请输入客户 ID"
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="package_name">套餐名称</Label>
+            <Label htmlFor="title">选题标题</Label>
             <Input
-              id="package_name"
-              value={formData.package_name || ''}
+              id="title"
+              value={formData.title}
               onChange={(e) =>
-                setFormData({ ...formData, package_name: e.target.value || null })
+                setFormData({ ...formData, title: e.target.value })
               }
-              placeholder="请输入套餐名称"
+              placeholder="请输入选题标题"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="direction">内容方向</Label>
+            <Textarea
+              id="direction"
+              value={formData.direction || ''}
+              onChange={(e) =>
+                setFormData({ ...formData, direction: e.target.value || null })
+              }
+              placeholder="请描述内容方向"
+              rows={3}
             />
           </div>
           <div className="space-y-2">
@@ -334,18 +343,41 @@ function CreateClientDialog({
             <Select
               value={formData.status}
               onValueChange={(value) =>
-                setFormData({ ...formData, status: value })
+                setFormData({
+                  ...formData,
+                  status: value as 'draft' | 'approved' | 'rejected',
+                })
               }
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="active">活跃</SelectItem>
-                <SelectItem value="inactive">未激活</SelectItem>
-                <SelectItem value="suspended">已暂停</SelectItem>
+                <SelectItem value="draft">草稿</SelectItem>
+                <SelectItem value="approved">已通过</SelectItem>
+                <SelectItem value="rejected">已拒绝</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="visible_to_client">客户可见</Label>
+            <Switch
+              id="visible_to_client"
+              checked={formData.visible_to_client}
+              onCheckedChange={(checked: boolean) =>
+                setFormData({ ...formData, visible_to_client: checked })
+              }
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="internal_only">仅内部</Label>
+            <Switch
+              id="internal_only"
+              checked={formData.internal_only}
+              onCheckedChange={(checked: boolean) =>
+                setFormData({ ...formData, internal_only: checked })
+              }
+            />
           </div>
           <DialogFooter>
             <Button
@@ -365,24 +397,25 @@ function CreateClientDialog({
   );
 }
 
-function EditClientDialog({
+function EditTopicDialog({
   open,
   onOpenChange,
-  client,
+  topic,
   onSubmit,
   isLoading,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  client: Client;
-  onSubmit: (data: ClientUpdateRequest) => void;
+  topic: Topic;
+  onSubmit: (data: TopicUpdateRequest) => void;
   isLoading: boolean;
 }) {
-  const [formData, setFormData] = useState<ClientUpdateRequest>({
-    name: client.name,
-    package_name: client.package_name,
-    status: client.status,
-    content_progress: client.content_progress,
+  const [formData, setFormData] = useState<TopicUpdateRequest>({
+    title: topic.title,
+    direction: topic.direction,
+    status: topic.status,
+    visible_to_client: topic.visible_to_client,
+    internal_only: topic.internal_only,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -392,32 +425,33 @@ function EditClientDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>编辑客户</DialogTitle>
+          <DialogTitle>编辑选题</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="edit-name">客户名称</Label>
+            <Label htmlFor="edit-title">选题标题</Label>
             <Input
-              id="edit-name"
-              value={formData.name}
+              id="edit-title"
+              value={formData.title}
               onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
+                setFormData({ ...formData, title: e.target.value })
               }
-              placeholder="请输入客户名称"
+              placeholder="请输入选题标题"
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit-package_name">套餐名称</Label>
-            <Input
-              id="edit-package_name"
-              value={formData.package_name || ''}
+            <Label htmlFor="edit-direction">内容方向</Label>
+            <Textarea
+              id="edit-direction"
+              value={formData.direction || ''}
               onChange={(e) =>
-                setFormData({ ...formData, package_name: e.target.value || null })
+                setFormData({ ...formData, direction: e.target.value || null })
               }
-              placeholder="请输入套餐名称"
+              placeholder="请描述内容方向"
+              rows={3}
             />
           </div>
           <div className="space-y-2">
@@ -425,32 +459,39 @@ function EditClientDialog({
             <Select
               value={formData.status}
               onValueChange={(value) =>
-                setFormData({ ...formData, status: value })
+                setFormData({
+                  ...formData,
+                  status: value as 'draft' | 'approved' | 'rejected',
+                })
               }
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="active">活跃</SelectItem>
-                <SelectItem value="inactive">未激活</SelectItem>
-                <SelectItem value="suspended">已暂停</SelectItem>
+                <SelectItem value="draft">草稿</SelectItem>
+                <SelectItem value="approved">已通过</SelectItem>
+                <SelectItem value="rejected">已拒绝</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-content_progress">内容进度 (%)</Label>
-            <Input
-              id="edit-content_progress"
-              type="number"
-              min="0"
-              max="100"
-              value={formData.content_progress || 0}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  content_progress: parseInt(e.target.value) || 0,
-                })
+          <div className="flex items-center justify-between">
+            <Label htmlFor="edit-visible_to_client">客户可见</Label>
+            <Switch
+              id="edit-visible_to_client"
+              checked={formData.visible_to_client}
+              onCheckedChange={(checked: boolean) =>
+                setFormData({ ...formData, visible_to_client: checked })
+              }
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="edit-internal_only">仅内部</Label>
+            <Switch
+              id="edit-internal_only"
+              checked={formData.internal_only}
+              onCheckedChange={(checked: boolean) =>
+                setFormData({ ...formData, internal_only: checked })
               }
             />
           </div>
@@ -472,16 +513,16 @@ function EditClientDialog({
   );
 }
 
-function DeleteClientDialog({
+function DeleteTopicDialog({
   open,
   onOpenChange,
-  client,
+  topic,
   onConfirm,
   isLoading,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  client: Client;
+  topic: Topic;
   onConfirm: () => void;
   isLoading: boolean;
 }) {
@@ -492,7 +533,7 @@ function DeleteClientDialog({
           <DialogTitle>确认删除</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-slate-600">
-          确定要删除客户 <strong>{client.name}</strong> 吗？此操作无法撤销。
+          确定要删除选题 <strong>{topic.title}</strong> 吗？此操作无法撤销。
         </p>
         <DialogFooter>
           <Button
@@ -516,7 +557,7 @@ function DeleteClientDialog({
   );
 }
 
-function ClientsSkeleton() {
+function TopicsSkeleton() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">

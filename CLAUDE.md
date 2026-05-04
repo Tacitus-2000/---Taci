@@ -22,6 +22,7 @@ project-agent 制定阶段计划
 ## 自动推进范围
 
 允许 Agent Team 在同一阶段内自动完成：
+
 - 类型错误修复
 - import 路径修复
 - lint 错误修复
@@ -33,6 +34,7 @@ project-agent 制定阶段计划
 ## 必须暂停并等待用户确认的情况
 
 出现以下情况必须停止：
+
 1. 需要删除大量文件。
 2. 需要重构整体架构。
 3. 需要更换技术栈。
@@ -49,6 +51,7 @@ project-agent 制定阶段计划
 ## 上下文管理
 
 每完成一个阶段，必须更新：
+
 - docs/PROJECT_STATUS.md
 - docs/TASK_BOARD.md
 - docs/DECISIONS.md
@@ -58,6 +61,7 @@ project-agent 制定阶段计划
 ## 验收规则
 
 每个阶段结束必须输出：
+
 1. 本阶段目标
 2. 新建文件
 3. 修改文件

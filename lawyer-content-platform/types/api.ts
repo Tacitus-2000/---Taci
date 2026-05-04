@@ -59,3 +59,44 @@ export interface HealthCheckResponse {
   };
   version: string;
 }
+
+/**
+ * ========================================
+ * 通用 API 响应类型
+ * ========================================
+ */
+
+/**
+ * 标准 API 响应包装
+ */
+export interface ApiResponse<T> {
+  data?: T;
+  error?: {
+    message: string;
+    code?: string;
+    details?: unknown;
+  };
+  success: boolean;
+}
+
+/**
+ * 分页响应
+ */
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+}
+
+/**
+ * API 错误
+ */
+export interface ApiError {
+  message: string;
+  code?: string;
+  status?: number;
+  details?: unknown;
+}
+

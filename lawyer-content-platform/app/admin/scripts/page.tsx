@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import { PlatformShell } from '@/app/_components/PlatformShell';
 import {
-  useClientProfiles,
-  useCreateClientProfile,
-  useUpdateClientProfile,
-  useDeleteClientProfile,
+  useAdminScripts,
+  useCreateScript,
+  useUpdateScript,
+  useDeleteScript,
 } from '@/lib/hooks/useAdminData';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   FileText,
   Plus,
   Edit,
@@ -33,40 +40,35 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import type { ClientProfile } from '@/types/database';
-import type {
-  ClientProfileCreateRequest,
-  ClientProfileUpdateRequest,
-} from '@/types/admin';
+import type { Script } from '@/types/database';
+import type { ScriptCreateRequest, ScriptUpdateRequest } from '@/types/admin';
 
 const ITEMS_PER_PAGE = 20;
 
-export default function AdminClientProfilesPage() {
+export default function AdminScriptsPage() {
   const [page, setPage] = useState(1);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedProfile, setSelectedProfile] = useState<ClientProfile | null>(
-    null
-  );
+  const [selectedScript, setSelectedScript] = useState<Script | null>(null);
 
-  const { data, isLoading, error, refetch } = useClientProfiles({
+  const { data, isLoading, error, refetch } = useAdminScripts({
     page,
     limit: ITEMS_PER_PAGE,
   });
 
-  const createMutation = useCreateClientProfile();
-  const updateMutation = useUpdateClientProfile(selectedProfile?.id || '');
-  const deleteMutation = useDeleteClientProfile();
+  const createMutation = useCreateScript();
+  const updateMutation = useUpdateScript(selectedScript?.id || '');
+  const deleteMutation = useDeleteScript();
 
   if (isLoading) {
     return (
       <PlatformShell
         badge="Admin"
-        title="客户档案"
-        description="维护行业画像、表达风格与内容策略。"
+        title="文案管理"
+        description="管理所有文案内容和发布状态。"
       >
-        <ProfilesSkeleton />
+        <ScriptsSkeleton />
       </PlatformShell>
     );
   }
@@ -75,78 +77,78 @@ export default function AdminClientProfilesPage() {
     return (
       <PlatformShell
         badge="Admin"
-        title="客户档案"
-        description="维护行业画像、表达风格与内容策略。"
+        title="文案管理"
+        description="管理所有文案内容和发布状态。"
       >
         <ErrorMessage message={error.message} onRetry={() => refetch()} />
       </PlatformShell>
     );
   }
 
-  const profiles = data?.data || [];
+  const scripts = data?.data || [];
   const meta = data?.meta;
   const hasNextPage = meta ? meta.page < meta.totalPages : false;
   const hasPrevPage = meta ? meta.page > 1 : false;
 
-  const handleCreate = async (formData: ClientProfileCreateRequest) => {
+  const handleCreate = async (formData: ScriptCreateRequest) => {
     await createMutation.mutateAsync(formData);
     setIsCreateDialogOpen(false);
   };
 
-  const handleUpdate = async (formData: ClientProfileUpdateRequest) => {
-    if (!selectedProfile) return;
+  const handleUpdate = async (formData: ScriptUpdateRequest) => {
+    if (!selectedScript) return;
     await updateMutation.mutateAsync(formData);
     setIsEditDialogOpen(false);
-    setSelectedProfile(null);
+    setSelectedScript(null);
   };
 
   const handleDelete = async () => {
-    if (!selectedProfile) return;
-    await deleteMutation.mutateAsync(selectedProfile.id);
+    if (!selectedScript) return;
+    await deleteMutation.mutateAsync(selectedScript.id);
     setIsDeleteDialogOpen(false);
-    setSelectedProfile(null);
+    setSelectedScript(null);
   };
 
   return (
     <PlatformShell
       badge="Admin"
-      title="客户档案"
-      description="维护行业画像、表达风格与内容策略。"
+      title="文案管理"
+      description="管理所有文案内容和发布状态。"
     >
       <div className="space-y-6">
         {/* 操作按钮 */}
         <div className="flex items-center justify-between">
           <div className="text-sm text-slate-600">
-            共 {meta?.total || 0} 个档案
+            共 {meta?.total || 0} 个文案
           </div>
           <Button
             onClick={() => setIsCreateDialogOpen(true)}
             className="flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
-            新建档案
+            新建文案
           </Button>
         </div>
 
-        {/* 档案列表 */}
-        {profiles.length === 0 ? (
+        {/* 文案列表 */}
+        {scripts.length === 0 ? (
           <EmptyState
-            title="暂无档案"
-            message="还没有创建任何客户档案"
+            title="暂无文案"
+            message="还没有创建任何文案"
             icon={<FileText className="h-16 w-16" />}
           />
         ) : (
           <div className="space-y-4">
-            {profiles.map((profile) => (
-              <ProfileCard
-                key={profile.id}
-                profile={profile}
+            {scripts.map((script) => (
+              <ScriptCard
+                key={script.id}
+                script={script}
                 onEdit={() => {
-                  setSelectedProfile(profile);
+                  setSelectedScript(script);
                   setIsEditDialogOpen(true);
                 }}
                 onDelete={() => {
-                  setSelectedProfile(profile);
+                  setSelectedScript(script);
                   setIsDeleteDialogOpen(true);
                 }}
               />
@@ -181,7 +183,7 @@ export default function AdminClientProfilesPage() {
       </div>
 
       {/* 创建对话框 */}
-      <CreateProfileDialog
+      <CreateScriptDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
         onSubmit={handleCreate}
@@ -189,22 +191,22 @@ export default function AdminClientProfilesPage() {
       />
 
       {/* 编辑对话框 */}
-      {selectedProfile && (
-        <EditProfileDialog
+      {selectedScript && (
+        <EditScriptDialog
           open={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
-          profile={selectedProfile}
+          script={selectedScript}
           onSubmit={handleUpdate}
           isLoading={updateMutation.isPending}
         />
       )}
 
       {/* 删除确认对话框 */}
-      {selectedProfile && (
-        <DeleteProfileDialog
+      {selectedScript && (
+        <DeleteScriptDialog
           open={isDeleteDialogOpen}
           onOpenChange={setIsDeleteDialogOpen}
-          profile={selectedProfile}
+          script={selectedScript}
           onConfirm={handleDelete}
           isLoading={deleteMutation.isPending}
         />
@@ -213,55 +215,52 @@ export default function AdminClientProfilesPage() {
   );
 }
 
-function ProfileCard({
-  profile,
+function ScriptCard({
+  script,
   onEdit,
   onDelete,
 }: {
-  profile: ClientProfile;
+  script: Script;
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const statusConfig = {
+    draft: { label: '草稿', color: 'bg-slate-100 text-slate-700' },
+    reviewed: { label: '已审查', color: 'bg-blue-100 text-blue-700' },
+    approved: { label: '已通过', color: 'bg-green-100 text-green-700' },
+    published: { label: '已发布', color: 'bg-purple-100 text-purple-700' },
+  };
+
+  const config = statusConfig[script.status];
+
   return (
     <Card className="rounded-[2rem] border-slate-200 p-6">
       <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 space-y-4">
-          <div className="flex items-center gap-3">
+        <div className="flex-1 space-y-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <h3 className="text-lg font-semibold text-slate-900">
-              {profile.client_name}
+              {script.title}
             </h3>
-            {profile.visible_to_client && (
+            <Badge className={config.color}>{config.label}</Badge>
+            {script.visible_to_client && (
               <Badge className="bg-blue-100 text-blue-700">客户可见</Badge>
             )}
-          </div>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            {profile.industry_name && (
-              <div>
-                <span className="text-slate-500">行业：</span>
-                <span className="text-slate-700">{profile.industry_name}</span>
-              </div>
-            )}
-            {profile.niche_direction && (
-              <div>
-                <span className="text-slate-500">细分方向：</span>
-                <span className="text-slate-700">{profile.niche_direction}</span>
-              </div>
-            )}
-            {profile.target_customer && (
-              <div className="col-span-2">
-                <span className="text-slate-500">目标客户：</span>
-                <span className="text-slate-700">{profile.target_customer}</span>
-              </div>
-            )}
-            {profile.tone_style && (
-              <div className="col-span-2">
-                <span className="text-slate-500">语气风格：</span>
-                <span className="text-slate-700">{profile.tone_style}</span>
-              </div>
+            {script.internal_only && (
+              <Badge className="bg-amber-100 text-amber-700">仅内部</Badge>
             )}
           </div>
+          <div>
+            <span className="text-sm text-slate-500">正文：</span>
+            <p className="text-slate-700 mt-1 line-clamp-3">{script.body}</p>
+          </div>
+          {script.usage_advice && (
+            <div>
+              <span className="text-sm text-slate-500">使用建议：</span>
+              <p className="text-slate-600 text-sm mt-1">{script.usage_advice}</p>
+            </div>
+          )}
           <div className="text-xs text-slate-400">
-            创建于 {new Date(profile.created_at).toLocaleDateString('zh-CN')}
+            创建于 {new Date(script.created_at).toLocaleDateString('zh-CN')}
           </div>
         </div>
         <div className="flex gap-2">
@@ -277,7 +276,7 @@ function ProfileCard({
   );
 }
 
-function CreateProfileDialog({
+function CreateScriptDialog({
   open,
   onOpenChange,
   onSubmit,
@@ -285,13 +284,16 @@ function CreateProfileDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: ClientProfileCreateRequest) => void;
+  onSubmit: (data: ScriptCreateRequest) => void;
   isLoading: boolean;
 }) {
-  const [formData, setFormData] = useState<ClientProfileCreateRequest>({
+  const [formData, setFormData] = useState<ScriptCreateRequest>({
     client_id: '',
-    client_name: '',
+    title: '',
+    body: '',
+    status: 'draft',
     visible_to_client: true,
+    internal_only: false,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -303,7 +305,7 @@ function CreateProfileDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>新建客户档案</DialogTitle>
+          <DialogTitle>新建文案</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -319,71 +321,77 @@ function CreateProfileDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="client_name">客户名称</Label>
+            <Label htmlFor="topic_id">选题 ID（可选）</Label>
             <Input
-              id="client_name"
-              value={formData.client_name}
+              id="topic_id"
+              value={formData.topic_id || ''}
               onChange={(e) =>
-                setFormData({ ...formData, client_name: e.target.value })
+                setFormData({ ...formData, topic_id: e.target.value || null })
               }
-              placeholder="请输入客户名称"
+              placeholder="请输入选题 ID"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="title">文案标题</Label>
+            <Input
+              id="title"
+              value={formData.title}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
+              placeholder="请输入文案标题"
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="industry_name">行业名称</Label>
-            <Input
-              id="industry_name"
-              value={formData.industry_name || ''}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  industry_name: e.target.value || null,
-                })
-              }
-              placeholder="请输入行业名称"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="niche_direction">细分方向</Label>
-            <Input
-              id="niche_direction"
-              value={formData.niche_direction || ''}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  niche_direction: e.target.value || null,
-                })
-              }
-              placeholder="请输入细分方向"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="target_customer">目标客户</Label>
+            <Label htmlFor="body">文案正文</Label>
             <Textarea
-              id="target_customer"
-              value={formData.target_customer || ''}
+              id="body"
+              value={formData.body}
               onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  target_customer: e.target.value || null,
-                })
+                setFormData({ ...formData, body: e.target.value })
               }
-              placeholder="请描述目标客户"
-              rows={3}
+              placeholder="请输入文案正文"
+              rows={6}
+              required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="tone_style">语气风格</Label>
+            <Label htmlFor="usage_advice">使用建议</Label>
             <Textarea
-              id="tone_style"
-              value={formData.tone_style || ''}
+              id="usage_advice"
+              value={formData.usage_advice || ''}
               onChange={(e) =>
-                setFormData({ ...formData, tone_style: e.target.value || null })
+                setFormData({
+                  ...formData,
+                  usage_advice: e.target.value || null,
+                })
               }
-              placeholder="请描述语气风格"
+              placeholder="请输入使用建议"
               rows={2}
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="status">状态</Label>
+            <Select
+              value={formData.status}
+              onValueChange={(value) =>
+                setFormData({
+                  ...formData,
+                  status: value as 'draft' | 'reviewed' | 'approved' | 'published',
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="draft">草稿</SelectItem>
+                <SelectItem value="reviewed">已审查</SelectItem>
+                <SelectItem value="approved">已通过</SelectItem>
+                <SelectItem value="published">已发布</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex items-center justify-between">
             <Label htmlFor="visible_to_client">客户可见</Label>
@@ -392,6 +400,16 @@ function CreateProfileDialog({
               checked={formData.visible_to_client}
               onCheckedChange={(checked: boolean) =>
                 setFormData({ ...formData, visible_to_client: checked })
+              }
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="internal_only">仅内部</Label>
+            <Switch
+              id="internal_only"
+              checked={formData.internal_only}
+              onCheckedChange={(checked: boolean) =>
+                setFormData({ ...formData, internal_only: checked })
               }
             />
           </div>
@@ -413,26 +431,26 @@ function CreateProfileDialog({
   );
 }
 
-function EditProfileDialog({
+function EditScriptDialog({
   open,
   onOpenChange,
-  profile,
+  script,
   onSubmit,
   isLoading,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  profile: ClientProfile;
-  onSubmit: (data: ClientProfileUpdateRequest) => void;
+  script: Script;
+  onSubmit: (data: ScriptUpdateRequest) => void;
   isLoading: boolean;
 }) {
-  const [formData, setFormData] = useState<ClientProfileUpdateRequest>({
-    client_name: profile.client_name,
-    industry_name: profile.industry_name,
-    niche_direction: profile.niche_direction,
-    target_customer: profile.target_customer,
-    tone_style: profile.tone_style,
-    visible_to_client: profile.visible_to_client,
+  const [formData, setFormData] = useState<ScriptUpdateRequest>({
+    title: script.title,
+    body: script.body,
+    usage_advice: script.usage_advice,
+    status: script.status,
+    visible_to_client: script.visible_to_client,
+    internal_only: script.internal_only,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -444,75 +462,70 @@ function EditProfileDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>编辑客户档案</DialogTitle>
+          <DialogTitle>编辑文案</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="edit-client_name">客户名称</Label>
+            <Label htmlFor="edit-title">文案标题</Label>
             <Input
-              id="edit-client_name"
-              value={formData.client_name}
+              id="edit-title"
+              value={formData.title}
               onChange={(e) =>
-                setFormData({ ...formData, client_name: e.target.value })
+                setFormData({ ...formData, title: e.target.value })
               }
-              placeholder="请输入客户名称"
+              placeholder="请输入文案标题"
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit-industry_name">行业名称</Label>
-            <Input
-              id="edit-industry_name"
-              value={formData.industry_name || ''}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  industry_name: e.target.value || null,
-                })
-              }
-              placeholder="请输入行业名称"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-niche_direction">细分方向</Label>
-            <Input
-              id="edit-niche_direction"
-              value={formData.niche_direction || ''}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  niche_direction: e.target.value || null,
-                })
-              }
-              placeholder="请输入细分方向"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-target_customer">目标客户</Label>
+            <Label htmlFor="edit-body">文案正文</Label>
             <Textarea
-              id="edit-target_customer"
-              value={formData.target_customer || ''}
+              id="edit-body"
+              value={formData.body}
               onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  target_customer: e.target.value || null,
-                })
+                setFormData({ ...formData, body: e.target.value })
               }
-              placeholder="请描述目标客户"
-              rows={3}
+              placeholder="请输入文案正文"
+              rows={6}
+              required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit-tone_style">语气风格</Label>
+            <Label htmlFor="edit-usage_advice">使用建议</Label>
             <Textarea
-              id="edit-tone_style"
-              value={formData.tone_style || ''}
+              id="edit-usage_advice"
+              value={formData.usage_advice || ''}
               onChange={(e) =>
-                setFormData({ ...formData, tone_style: e.target.value || null })
+                setFormData({
+                  ...formData,
+                  usage_advice: e.target.value || null,
+                })
               }
-              placeholder="请描述语气风格"
+              placeholder="请输入使用建议"
               rows={2}
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-status">状态</Label>
+            <Select
+              value={formData.status}
+              onValueChange={(value) =>
+                setFormData({
+                  ...formData,
+                  status: value as 'draft' | 'reviewed' | 'approved' | 'published',
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="draft">草稿</SelectItem>
+                <SelectItem value="reviewed">已审查</SelectItem>
+                <SelectItem value="approved">已通过</SelectItem>
+                <SelectItem value="published">已发布</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex items-center justify-between">
             <Label htmlFor="edit-visible_to_client">客户可见</Label>
@@ -521,6 +534,16 @@ function EditProfileDialog({
               checked={formData.visible_to_client}
               onCheckedChange={(checked: boolean) =>
                 setFormData({ ...formData, visible_to_client: checked })
+              }
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="edit-internal_only">仅内部</Label>
+            <Switch
+              id="edit-internal_only"
+              checked={formData.internal_only}
+              onCheckedChange={(checked: boolean) =>
+                setFormData({ ...formData, internal_only: checked })
               }
             />
           </div>
@@ -542,16 +565,16 @@ function EditProfileDialog({
   );
 }
 
-function DeleteProfileDialog({
+function DeleteScriptDialog({
   open,
   onOpenChange,
-  profile,
+  script,
   onConfirm,
   isLoading,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  profile: ClientProfile;
+  script: Script;
   onConfirm: () => void;
   isLoading: boolean;
 }) {
@@ -562,8 +585,7 @@ function DeleteProfileDialog({
           <DialogTitle>确认删除</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-slate-600">
-          确定要删除客户档案 <strong>{profile.client_name}</strong>{' '}
-          吗？此操作无法撤销。
+          确定要删除文案 <strong>{script.title}</strong> 吗？此操作无法撤销。
         </p>
         <DialogFooter>
           <Button
@@ -587,7 +609,7 @@ function DeleteProfileDialog({
   );
 }
 
-function ProfilesSkeleton() {
+function ScriptsSkeleton() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
