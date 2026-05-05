@@ -37,7 +37,7 @@ type GenerateFormData = z.infer<typeof generateSchema>;
 export default function ClientGeneratePage() {
   const clientId = useClientId();
   const [generationSuccess, setGenerationSuccess] = useState(false);
-  const { data: topics, isLoading: topicsLoading } = useTopics(clientId, { status: 'approved', limit: 100 });
+  const { data: topics, isLoading: topicsLoading } = useTopics(clientId || '', { status: 'approved', limit: 100 });
   const generateScript = useGenerateScript();
 
   const {
@@ -63,6 +63,8 @@ export default function ClientGeneratePage() {
   }, [generateScript.isSuccess]);
 
   const onSubmit = async (data: GenerateFormData) => {
+    if (!clientId) return;
+
     const payload: GenerateScriptRequest = {
       client_id: clientId,
       topic_id: data.topic_id || null,

@@ -7,6 +7,7 @@ import {
   useCreateClientProfile,
   useUpdateClientProfile,
   useDeleteClientProfile,
+  useClients,
 } from '@/lib/hooks/useAdminData';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +26,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   FileText,
   Plus,
@@ -294,6 +302,10 @@ function CreateProfileDialog({
     visible_to_client: true,
   });
 
+  // 获取客户列表用于选择
+  const { data: clientsData } = useClients({ page: 1, limit: 100 });
+  const clients = clientsData?.data || [];
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
@@ -307,16 +319,29 @@ function CreateProfileDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="client_id">客户 ID</Label>
-            <Input
-              id="client_id"
+            <Label htmlFor="client_id">选择客户</Label>
+            <Select
               value={formData.client_id}
-              onChange={(e) =>
-                setFormData({ ...formData, client_id: e.target.value })
-              }
-              placeholder="请输入客户 ID"
-              required
-            />
+              onValueChange={(value) => {
+                const selectedClient = clients.find(c => c.id === value);
+                setFormData({
+                  ...formData,
+                  client_id: value,
+                  client_name: selectedClient?.name || formData.client_name
+                });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="请选择客户" />
+              </SelectTrigger>
+              <SelectContent>
+                {clients.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="client_name">客户名称</Label>

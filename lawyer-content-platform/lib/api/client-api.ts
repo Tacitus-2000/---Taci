@@ -24,7 +24,7 @@ export class ClientApi {
    * 获取客户档案
    */
   async getProfile(clientId: string): Promise<ClientProfilePublic> {
-    return apiClient.get<ClientProfilePublic>(`/client/${clientId}/profile`);
+    return apiClient.get<ClientProfilePublic>(`/client/profile?client_id=${clientId}`);
   }
 
   /**
@@ -35,7 +35,7 @@ export class ClientApi {
     data: Partial<ClientProfilePublic>
   ): Promise<ClientProfilePublic> {
     return apiClient.put<ClientProfilePublic>(
-      `/client/${clientId}/profile`,
+      `/client/profile?client_id=${clientId}`,
       data
     );
   }
@@ -51,15 +51,15 @@ export class ClientApi {
       offset?: number;
     }
   ): Promise<TopicPublic[]> {
-    const queryParams = new URLSearchParams();
+    const queryParams = new URLSearchParams({ client_id: clientId });
     if (params?.status) queryParams.append('status', params.status);
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.offset) queryParams.append('offset', params.offset.toString());
 
-    const query = queryParams.toString();
-    const endpoint = `/client/${clientId}/topics${query ? `?${query}` : ''}`;
+    const endpoint = `/client/topics?${queryParams.toString()}`;
 
-    return apiClient.get<TopicPublic[]>(endpoint);
+    const response = await apiClient.get<{ data: TopicPublic[]; meta: any }>(endpoint);
+    return response.data;
   }
 
   /**
@@ -67,7 +67,7 @@ export class ClientApi {
    */
   async getTopic(clientId: string, topicId: string): Promise<TopicPublic> {
     return apiClient.get<TopicPublic>(
-      `/client/${clientId}/topics/${topicId}`
+      `/client/topics/${topicId}?client_id=${clientId}`
     );
   }
 
@@ -83,25 +83,26 @@ export class ClientApi {
       offset?: number;
     }
   ): Promise<ScriptPublic[]> {
-    const queryParams = new URLSearchParams();
+    const queryParams = new URLSearchParams({ client_id: clientId });
     if (params?.status) queryParams.append('status', params.status);
     if (params?.topic_id) queryParams.append('topic_id', params.topic_id);
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.offset) queryParams.append('offset', params.offset.toString());
 
-    const query = queryParams.toString();
-    const endpoint = `/client/${clientId}/scripts${query ? `?${query}` : ''}`;
+    const endpoint = `/client/scripts?${queryParams.toString()}`;
 
-    return apiClient.get<ScriptPublic[]>(endpoint);
+    const response = await apiClient.get<{ data: ScriptPublic[]; meta: any }>(endpoint);
+    return response.data;
   }
 
   /**
    * 获取单个文案
    */
   async getScript(clientId: string, scriptId: string): Promise<ScriptPublic> {
-    return apiClient.get<ScriptPublic>(
-      `/client/${clientId}/scripts/${scriptId}`
+    const response = await apiClient.get<{ data: ScriptPublic; meta?: any }>(
+      `/client/scripts/${scriptId}?client_id=${clientId}`
     );
+    return response.data;
   }
 
   /**
@@ -114,13 +115,13 @@ export class ClientApi {
       end_date?: string;
     }
   ): Promise<CalendarResponse> {
-    const queryParams = new URLSearchParams();
+    const queryParams = new URLSearchParams({ client_id: clientId });
     if (params?.start_date) queryParams.append('start_date', params.start_date);
     if (params?.end_date) queryParams.append('end_date', params.end_date);
 
-    const query = queryParams.toString();
-    const endpoint = `/client/${clientId}/calendar${query ? `?${query}` : ''}`;
+    const endpoint = `/client/calendar?${queryParams.toString()}`;
 
+    // 修复：apiClient.get 已经解包了第一层，直接返回即可
     return apiClient.get<CalendarResponse>(endpoint);
   }
 
@@ -130,8 +131,9 @@ export class ClientApi {
   async getStyleReferences(
     clientId: string
   ): Promise<StyleReferenceResponse> {
+    // 修复：apiClient.get 已经解包了第一层，直接返回即可
     return apiClient.get<StyleReferenceResponse>(
-      `/client/${clientId}/style-references`
+      `/client/style-reference?client_id=${clientId}`
     );
   }
 
@@ -142,7 +144,7 @@ export class ClientApi {
     data: ClientFeedbackRequest
   ): Promise<ClientFeedbackResponse> {
     return apiClient.post<ClientFeedbackResponse>(
-      `/client/${data.client_id}/feedback`,
+      `/client/feedback?client_id=${data.client_id}`,
       data
     );
   }
@@ -154,7 +156,7 @@ export class ClientApi {
     data: GenerateScriptRequest
   ): Promise<GenerateScriptResponse> {
     return apiClient.post<GenerateScriptResponse>(
-      `/client/${data.client_id}/generate-script`,
+      `/client/generate?client_id=${data.client_id}`,
       data
     );
   }
@@ -170,16 +172,16 @@ export class ClientApi {
       offset?: number;
     }
   ): Promise<ClientFeedbackResponse[]> {
-    const queryParams = new URLSearchParams();
+    const queryParams = new URLSearchParams({ client_id: clientId });
     if (params?.content_type)
       queryParams.append('content_type', params.content_type);
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.offset) queryParams.append('offset', params.offset.toString());
 
-    const query = queryParams.toString();
-    const endpoint = `/client/${clientId}/feedback${query ? `?${query}` : ''}`;
+    const endpoint = `/client/feedback?${queryParams.toString()}`;
 
-    return apiClient.get<ClientFeedbackResponse[]>(endpoint);
+    const response = await apiClient.get<{ data: ClientFeedbackResponse[]; meta: any }>(endpoint);
+    return response.data;
   }
 }
 

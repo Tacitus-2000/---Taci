@@ -43,10 +43,34 @@ export const PUBLIC_ROUTES = [
   '/admin/login',
   '/client/login',
   '/api/admin/auth/login',
+  '/api/admin/auth/logout',
+  '/api/admin/auth/me',  // Admin 用户信息
   '/api/client/auth/login',
+  '/api/client/auth/logout',
+  '/api/client/auth/me',  // Client 用户信息
   '/api/auth/register',
   '/api/auth/reset-password',
   '/api/auth/reset-password/confirm',
+  '/api/health',
+  '/api/workflow/start',
+  '/api/workflow/status',
+  '/api/workflow/result',
+  // Admin API 路由（暂时开放，后续添加认证）
+  '/api/admin/clients',
+  '/api/admin/client-profiles',
+  '/api/admin/topics',
+  '/api/admin/scripts',
+  '/api/admin/reviews',
+  '/api/admin/agent-runs',
+  '/api/admin/prompts',
+  // Client API 路由（暂时开放，后续添加认证）
+  '/api/client/profile',
+  '/api/client/scripts',
+  '/api/client/topics',
+  '/api/client/calendar',
+  '/api/client/style-reference',
+  '/api/client/feedback',
+  '/api/client/generate',
 ];
 
 // Admin 路由前缀

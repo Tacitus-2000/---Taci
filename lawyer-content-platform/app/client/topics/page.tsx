@@ -20,10 +20,18 @@ export default function ClientTopicsPage() {
   const [page, setPage] = useState(1);
   const offset = (page - 1) * ITEMS_PER_PAGE;
 
-  const { data: topics, isLoading, error, refetch } = useTopics(clientId, {
+  const { data: topics, isLoading, error, refetch } = useTopics(clientId || '', {
     limit: ITEMS_PER_PAGE,
     offset,
   });
+
+  if (!clientId) {
+    return (
+      <PlatformShell badge="Client" title="选题需求" description="查看选题列表和审核状态。">
+        <ErrorMessage message="未找到客户信息，请重新登录" onRetry={() => window.location.href = '/client/login'} />
+      </PlatformShell>
+    );
+  }
 
   if (isLoading) {
     return (

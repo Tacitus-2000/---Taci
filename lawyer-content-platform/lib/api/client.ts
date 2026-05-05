@@ -46,6 +46,7 @@ class ApiClient {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+      credentials: 'include', // 包含 Cookie（用于 httpOnly token）
     };
 
     try {

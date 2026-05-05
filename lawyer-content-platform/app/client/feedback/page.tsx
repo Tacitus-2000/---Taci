@@ -43,6 +43,8 @@ export default function ClientFeedbackPage() {
   });
 
   const onSubmit = async (data: FeedbackFormData) => {
+    if (!clientId) return;
+
     const payload: ClientFeedbackRequest = {
       client_id: clientId,
       content_type: data.content_type,

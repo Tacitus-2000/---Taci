@@ -6,9 +6,10 @@
  */
 
 import { NextRequest } from 'next/server';
-import { getSupabaseClient } from '@/lib/supabase/client';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { apiSuccess, apiError } from '@/lib/api/response';
 import { validateUUID, validateRequired, validatePagination } from '@/lib/api/validation';
+import { resolveClientId, isErrorResponse } from '@/lib/api/client-helper';
 import type { ScriptPublic } from '@/types/client';
 
 /**
@@ -29,24 +30,31 @@ import type { ScriptPublic } from '@/types/client';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const clientId = searchParams.get('client_id');
+    const userId = searchParams.get('client_id'); // 实际上是 user_id
     const page = searchParams.get('page');
     const limit = searchParams.get('limit');
 
     // 验证必填参数
-    const validClientId = validateRequired(clientId, 'client_id');
-    validateUUID(validClientId, 'client_id');
+    const validUserId = validateRequired(userId, 'client_id');
+    validateUUID(validUserId, 'client_id');
 
     // 验证分页参数
     const { page: validPage, limit: validLimit, offset } = validatePagination(page, limit);
 
-    const supabase = getSupabaseClient();
+    // 解析并验证 client_id（包含授权检查）
+    const result = await resolveClientId(request, validUserId);
+    if (isErrorResponse(result)) {
+      return result;
+    }
 
-    // 构建查询 - 获取总数
+    const { clientId } = result;
+    const supabase = getSupabaseAdmin();
+
+    // Step 2: 构建查询 - 获取总数
     const countQuery = supabase
       .from('scripts')
       .select('*', { count: 'exact', head: true })
-      .eq('client_id', validClientId)
+      .eq('client_id', clientId)
       .eq('visible_to_client', true)
       .eq('internal_only', false)
       .in('status', ['approved', 'published']);
@@ -58,7 +66,7 @@ export async function GET(request: NextRequest) {
       return apiError('DATABASE_ERROR', 'Failed to count scripts', 500, countError);
     }
 
-    // 查询文案列表
+    // Step 3: 查询文案列表
     // 使用显式字段选择
     const { data, error } = await supabase
       .from('scripts')
@@ -73,7 +81,7 @@ export async function GET(request: NextRequest) {
         created_at,
         updated_at
       `)
-      .eq('client_id', validClientId)
+      .eq('client_id', clientId)
       .eq('visible_to_client', true)
       .eq('internal_only', false)
       .in('status', ['approved', 'published'])

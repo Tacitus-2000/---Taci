@@ -20,10 +20,18 @@ export default function ClientScriptsPage() {
   const [page, setPage] = useState(1);
   const offset = (page - 1) * ITEMS_PER_PAGE;
 
-  const { data: scripts, isLoading, error, refetch } = useScripts(clientId, {
+  const { data: scripts, isLoading, error, refetch } = useScripts(clientId || '', {
     limit: ITEMS_PER_PAGE,
     offset,
   });
+
+  if (!clientId) {
+    return (
+      <PlatformShell badge="Client" title="我的文案" description="查看已生成内容、使用建议与反馈状态。">
+        <ErrorMessage message="未找到客户信息，请重新登录" onRetry={() => window.location.href = '/client/login'} />
+      </PlatformShell>
+    );
+  }
 
   if (isLoading) {
     return (

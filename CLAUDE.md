@@ -1,73 +1,151 @@
-@AGENTS.md
+# Claude Code Project Rules
 
-# 项目持续开发规则
+## Core Workflow
 
-本项目由三人 Agent Team 协作开发：
+Use a single-agent workflow by default.
 
-1. project-agent：负责阶段规划、任务拆解、文件范围控制。
-2. program-agent：负责代码实现和最小必要修复。
-3. review-agent：负责安全、架构、lint、build、越界审查。
+Default skills:
 
-## 工作方式
+1. `superpower / systematic-debugging`
+2. `superpower / verification-before-completion`
+3. `supabase-postgres-best-practices`
+4. `microsoft/playwright-cli`
 
-每一阶段必须按以下顺序执行：
+Do not create multi-agent teams unless explicitly requested.
 
-project-agent 制定阶段计划
-→ program-agent 实现
-→ review-agent 审查
-→ program-agent 根据审查报告最小修复
-→ review-agent 复审
-→ 输出阶段报告
+Do not use extra skills unless explicitly necessary.
 
-## 自动推进范围
+Do not automatically:
+- create git branches
+- commit code
+- perform large refactors
+- introduce unrelated dependencies
 
-允许 Agent Team 在同一阶段内自动完成：
+---
 
-- 类型错误修复
-- import 路径修复
-- lint 错误修复
-- build 错误修复
-- mock 字段不一致修复
-- API response 格式修复
-- 小范围代码整理
+## Working Principles
 
-## 必须暂停并等待用户确认的情况
+Act as one disciplined engineer.
 
-出现以下情况必须停止：
+Priority:
 
-1. 需要删除大量文件。
-2. 需要重构整体架构。
-3. 需要更换技术栈。
-4. 需要修改数据库核心结构。
-5. 需要接入真实密钥。
-6. 需要实现第二版功能。
-7. 需要修改前端主流程。
-8. npm run build 连续失败 2 次。
-9. 同一个问题修复 2 次仍失败。
-10. 需要安装新依赖。
-11. 需要执行数据库迁移。
-12. 需要 git commit 或 push。
+1. Find the real root cause.
+2. Make the smallest safe change.
+3. Avoid low-level mistakes.
+4. Verify before reporting completion.
+5. Report evidence, not guesses.
 
-## 上下文管理
+Do not modify code without reading relevant files first.
 
-每完成一个阶段，必须更新：
+Do not guess the root cause.
 
-- docs/PROJECT_STATUS.md
-- docs/TASK_BOARD.md
-- docs/DECISIONS.md
-- docs/ERROR_LOG.md
-- docs/NEXT_ACTIONS.md
+Do not make large architectural changes for small bugs.
 
-## 验收规则
+---
 
-每个阶段结束必须输出：
+## Superpower Rules
 
-1. 本阶段目标
-2. 新建文件
-3. 修改文件
-4. 自动修复的问题
-5. 未解决的问题
-6. lint 结果
-7. build 结果
-8. 安全审查结果
-9. 是否建议进入下一阶段
+Use only these two Superpower abilities by default:
+
+### `systematic-debugging`
+
+Use for bug fixing.
+
+Required process:
+
+1. Read relevant files.
+2. Locate the actual failure point.
+3. List likely causes.
+4. Verify causes with code, logs, terminal output, browser behavior, or database results.
+5. Modify only after evidence is found.
+6. Make the smallest safe fix.
+7. Check all related call sites.
+
+### `verification-before-completion`
+
+Use after every code change.
+
+Do not claim completion before verification.
+
+Report:
+
+- TypeScript result
+- Lint result
+- Build result
+- Playwright result, if browser behavior is involved
+- Supabase/Postgres result, if database work is involved
+
+---
+
+## Supabase / Postgres Rules
+
+Use `supabase-postgres-best-practices` only when the task involves:
+
+- Supabase
+- PostgreSQL
+- SQL
+- migrations
+- RLS
+- schema
+- tables
+- columns
+- indexes
+- constraints
+- database functions
+- backend database access logic
+
+Database rules:
+
+1. Do not guess table names.
+2. Do not guess column names.
+3. Do not modify RLS casually.
+4. Never expose service role keys to client-side code.
+5. For RLS changes, explain:
+   - who can read
+   - who can insert
+   - who can update
+   - who can delete
+   - how tenant/client isolation is enforced
+
+---
+
+## Playwright Rules
+
+Use `microsoft/playwright-cli` only when browser behavior must be verified, including:
+
+- login flow
+- redirects
+- cookies
+- sessions
+- API response inspection
+- console errors
+- network requests
+- page runtime errors
+- blank pages
+- `Unexpected token '<'`
+- login succeeds but page state is wrong
+- one page works but another page fails
+
+For `Unexpected token '<'`, inspect:
+
+1. failed request URL
+2. status code
+3. content-type
+4. response body
+5. whether HTML was returned
+6. whether it is a 404 page, login page, middleware redirect, or Next.js error page
+
+Do not assume it is only a JSON parsing issue.
+
+---
+
+## Mandatory Checks After Code Changes
+
+After every code change, inspect `package.json` and run available checks.
+
+Prefer:
+
+```bash
+npm run typecheck
+npm run lint
+npm run build

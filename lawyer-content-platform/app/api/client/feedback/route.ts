@@ -6,9 +6,10 @@
  */
 
 import { NextRequest } from 'next/server';
-import { getSupabaseClient } from '@/lib/supabase/client';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { apiSuccess, apiError } from '@/lib/api/response';
 import { validateUUID, validateRequired, validateEnum } from '@/lib/api/validation';
+import { resolveClientId, isErrorResponse } from '@/lib/api/client-helper';
 import type { ClientFeedbackRequest, ClientFeedbackResponse } from '@/types/client';
 
 /**
@@ -67,21 +68,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const supabase = getSupabaseClient();
-
-    // 验证 client_id 是否存在
-    const { data: client, error: clientError } = await supabase
-      .from('clients')
-      .select('id')
-      .eq('id', body.client_id)
-      .single();
-
-    if (clientError || !client) {
-      console.error('[Client API] Client not found:', body.client_id);
-      return apiError('CLIENT_NOT_FOUND', 'Client not found', 404);
+    // 解析并验证 client_id（包含授权检查）
+    const result = await resolveClientId(request, body.client_id);
+    if (isErrorResponse(result)) {
+      return result;
     }
 
-    // 如果提供了 content_id，验证内容是否存在且属于该客户
+    const { clientId } = result;
+    const supabase = getSupabaseAdmin();
+
+    // Step 2: 如果提供了 content_id，验证内容是否存在且属于该客户
     if (body.content_id) {
       let contentExists = false;
 
@@ -90,7 +86,7 @@ export async function POST(request: NextRequest) {
           .from('client_profiles')
           .select('id')
           .eq('id', body.content_id)
-          .eq('client_id', body.client_id)
+          .eq('client_id', clientId)
           .single();
         contentExists = !!data;
       } else if (body.content_type === 'topic') {
@@ -98,7 +94,7 @@ export async function POST(request: NextRequest) {
           .from('topics')
           .select('id')
           .eq('id', body.content_id)
-          .eq('client_id', body.client_id)
+          .eq('client_id', clientId)
           .single();
         contentExists = !!data;
       } else if (body.content_type === 'script') {
@@ -106,7 +102,7 @@ export async function POST(request: NextRequest) {
           .from('scripts')
           .select('id')
           .eq('id', body.content_id)
-          .eq('client_id', body.client_id)
+          .eq('client_id', clientId)
           .single();
         contentExists = !!data;
       }
@@ -116,11 +112,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 插入反馈
+    // Step 3: 插入反馈
     const { data, error } = await supabase
       .from('client_feedback')
       .insert({
-        client_id: body.client_id,
+        client_id: clientId,
         content_type: body.content_type,
         content_id: body.content_id || null,
         feedback_text: body.feedback_text.trim(),

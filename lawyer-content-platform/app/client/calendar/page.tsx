@@ -14,7 +14,15 @@ import type { CalendarItem } from '@/types/client';
 
 export default function ClientCalendarPage() {
   const clientId = useClientId();
-  const { data, isLoading, error, refetch } = useCalendar(clientId);
+  const { data, isLoading, error, refetch } = useCalendar(clientId || '');
+
+  if (!clientId) {
+    return (
+      <PlatformShell badge="Client" title="内容日历" description="查看内容排期、发布时间和发布建议。">
+        <ErrorMessage message="未找到客户信息，请重新登录" onRetry={() => window.location.href = '/client/login'} />
+      </PlatformShell>
+    );
+  }
 
   if (isLoading) {
     return (

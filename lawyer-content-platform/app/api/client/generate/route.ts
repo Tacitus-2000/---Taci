@@ -6,9 +6,10 @@
  */
 
 import { NextRequest } from 'next/server';
-import { getSupabaseClient } from '@/lib/supabase/client';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { apiSuccess, apiError } from '@/lib/api/response';
 import { validateUUID, validateRequired } from '@/lib/api/validation';
+import { resolveClientId, isErrorResponse } from '@/lib/api/client-helper';
 import type { GenerateScriptRequest, GenerateScriptResponse } from '@/types/client';
 
 /**
@@ -65,28 +66,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const supabase = getSupabaseClient();
-
-    // 验证 client_id 是否存在
-    const { data: client, error: clientError } = await supabase
-      .from('clients')
-      .select('id, name')
-      .eq('id', body.client_id)
-      .single();
-
-    if (clientError || !client) {
-      console.error('[Client API] Client not found:', body.client_id);
-      return apiError('CLIENT_NOT_FOUND', 'Client not found', 404);
+    // 解析并验证 client_id（包含授权检查）
+    const result = await resolveClientId(request, body.client_id);
+    if (isErrorResponse(result)) {
+      return result;
     }
 
-    // 如果提供了 topic_id，验证选题是否存在且属于该客户
+    const { clientId } = result;
+    const supabase = getSupabaseAdmin();
+
+    // Step 2: 如果提供了 topic_id，验证选题是否存在且属于该客户
     let topicTitle = '';
     if (body.topic_id) {
       const { data: topic, error: topicError } = await supabase
         .from('topics')
         .select('id, title, client_id')
         .eq('id', body.topic_id)
-        .eq('client_id', body.client_id)
+        .eq('client_id', clientId)
         .single();
 
       if (topicError || !topic) {
@@ -100,7 +96,7 @@ export async function POST(request: NextRequest) {
     // TODO: 接入真实的 AI 工作流
     // 当前使用 mock 实现
     console.log('[Client API] Generating script (MOCK):', {
-      client_id: body.client_id,
+      client_id: clientId,
       topic_id: body.topic_id,
       custom_direction: body.custom_direction,
     });
@@ -130,11 +126,11 @@ TODO: 接入真实的 AI 工作流
 2. 请在真实环境中接入 AI 工作流
 3. 当前状态为 draft，需要审核后才能发布`;
 
-    // 插入文案
+    // Step 3: 插入文案
     const { data, error } = await supabase
       .from('scripts')
       .insert({
-        client_id: body.client_id,
+        client_id: clientId,
         topic_id: body.topic_id || null,
         title: mockTitle,
         body: mockBody,

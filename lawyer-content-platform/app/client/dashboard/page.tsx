@@ -6,6 +6,7 @@ import { useClientProfile, useScripts, useTopics, useCalendar } from '@/lib/hook
 import { useClientId } from '@/lib/hooks/useClientId';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { User, FileText, Lightbulb, Sparkles, MessageSquare, TrendingUp } from 'lucide-react';
 
@@ -20,11 +21,24 @@ export default function ClientDashboardPage() {
     published: '已发布',
   };
 
-  const { data: scripts, isLoading: scriptsLoading } = useScripts(clientId, { limit: 5 });
-  const { data: topics, isLoading: topicsLoading } = useTopics(clientId, { limit: 5 });
-  const { data: calendar, isLoading: calendarLoading } = useCalendar(clientId);
+  const { data: scripts, isLoading: scriptsLoading } = useScripts(clientId || '', { limit: 5 });
+  const { data: topics, isLoading: topicsLoading } = useTopics(clientId || '', { limit: 5 });
+  const { data: calendar, isLoading: calendarLoading } = useCalendar(clientId || '');
 
   const isLoading = scriptsLoading || topicsLoading || calendarLoading;
+
+  if (!clientId) {
+    return (
+      <PlatformShell badge="Client" title="客户首页" description="查看内容概览、最新动态和快捷入口。">
+        <Card className="rounded-[2rem] border-slate-200 p-8 text-center">
+          <p className="text-slate-600">未找到客户信息，请重新登录</p>
+          <Button onClick={() => window.location.href = '/client/login'} className="mt-4">
+            返回登录
+          </Button>
+        </Card>
+      </PlatformShell>
+    );
+  }
 
   if (isLoading) {
     return (

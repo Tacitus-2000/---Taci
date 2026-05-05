@@ -1,34 +1,72 @@
 /**
  * useClientId Hook
- * 用于获取和管理客户 ID（硬编码用于测试）
+ * 用于获取和管理客户 ID（从服务端 API 获取）
  */
 
 'use client';
 
 import { useState, useEffect } from 'react';
 
-// 硬编码的测试客户 ID
-const TEST_CLIENT_ID = 'test-client-001';
+/**
+ * 从服务端 API 获取客户 ID
+ * 因为 Cookie 设置了 httpOnly，JavaScript 无法直接读取
+ */
+async function fetchClientIdFromServer(): Promise<string | null> {
+  try {
+    const response = await fetch('/api/client/auth/me', {
+      credentials: 'include', // 包含 Cookie
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+
+    if (data.success && data.user && data.user.role === 'client') {
+      return data.user.userId;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('获取客户 ID 失败:', error);
+    return null;
+  }
+}
 
 /**
  * 获取客户 ID
- * 当前使用硬编码的测试 ID，后续可以从 URL、Context 或认证系统获取
+ * 从服务端 API 获取当前登录客户的 ID
  */
-export function useClientId(): string {
-  const [clientId] = useState<string>(TEST_CLIENT_ID);
+export function useClientId(): string | null {
+  const [clientId, setClientId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // 可以在这里添加从 URL 或其他来源获取 clientId 的逻辑
-    // 例如：const params = useSearchParams();
-    // const id = params.get('client_id');
+    let mounted = true;
+
+    const loadClientId = async () => {
+      const id = await fetchClientIdFromServer();
+      if (mounted) {
+        setClientId(id);
+        setIsLoading(false);
+      }
+    };
+
+    loadClientId();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return clientId;
 }
 
 /**
- * 获取客户 ID（同步版本）
+ * 获取客户 ID（异步版本）
  */
-export function getClientId(): string {
-  return TEST_CLIENT_ID;
+export async function getClientId(): Promise<string | null> {
+  return fetchClientIdFromServer();
 }
+

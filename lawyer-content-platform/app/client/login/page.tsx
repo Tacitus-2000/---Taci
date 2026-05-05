@@ -27,6 +27,7 @@ export default function ClientLoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // 重要：允许浏览器接收和发送 Cookie
         body: JSON.stringify({ email, password }),
       });
 
@@ -34,6 +35,8 @@ export default function ClientLoginPage() {
 
       if (data.success) {
         toast.success('登录成功');
+        // 等待一小段时间确保 Cookie 被浏览器处理
+        await new Promise(resolve => setTimeout(resolve, 100));
         router.push('/client/dashboard');
         router.refresh();
       } else {

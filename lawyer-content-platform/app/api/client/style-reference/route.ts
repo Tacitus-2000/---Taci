@@ -6,9 +6,10 @@
  */
 
 import { NextRequest } from 'next/server';
-import { getSupabaseClient } from '@/lib/supabase/client';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { apiSuccess, apiError } from '@/lib/api/response';
 import { validateUUID, validateRequired } from '@/lib/api/validation';
+import { resolveClientId, isErrorResponse } from '@/lib/api/client-helper';
 import type { StyleReferenceResponse, StyleReferenceItem } from '@/types/client';
 
 /**
@@ -28,12 +29,12 @@ import type { StyleReferenceResponse, StyleReferenceItem } from '@/types/client'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const clientId = searchParams.get('client_id');
+    const userId = searchParams.get('client_id'); // 实际上是 user_id
     const limitParam = searchParams.get('limit');
 
     // 验证必填参数
-    const validClientId = validateRequired(clientId, 'client_id');
-    validateUUID(validClientId, 'client_id');
+    const validUserId = validateRequired(userId, 'client_id');
+    validateUUID(validUserId, 'client_id');
 
     // 验证 limit 参数
     let limit = 10;
@@ -44,13 +45,20 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const supabase = getSupabaseClient();
+    // 解析并验证 client_id（包含授权检查）
+    const result = await resolveClientId(request, validUserId);
+    if (isErrorResponse(result)) {
+      return result;
+    }
 
-    // 查询客户档案（获取风格设定）
+    const { clientId } = result;
+    const supabase = getSupabaseAdmin();
+
+    // Step 2: 查询客户档案（获取风格设定）
     const { data: profile, error: profileError } = await supabase
       .from('client_profiles')
       .select('tone_style, taboo_expressions')
-      .eq('client_id', validClientId)
+      .eq('client_id', clientId)
       .eq('visible_to_client', true)
       .single();
 
@@ -59,11 +67,11 @@ export async function GET(request: NextRequest) {
       return apiError('DATABASE_ERROR', 'Failed to fetch profile', 500, profileError);
     }
 
-    // 查询已发布的文案作为风格参考
+    // Step 3: 查询已发布的文案作为风格参考
     const { data: scripts, error: scriptsError } = await supabase
       .from('scripts')
       .select('id, title, body, usage_advice, created_at')
-      .eq('client_id', validClientId)
+      .eq('client_id', clientId)
       .eq('visible_to_client', true)
       .eq('internal_only', false)
       .eq('status', 'published')

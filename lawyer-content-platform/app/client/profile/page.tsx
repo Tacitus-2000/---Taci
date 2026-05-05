@@ -12,7 +12,16 @@ import { EmptyState } from '@/components/EmptyState';
 
 export default function ClientProfilePage() {
   const clientId = useClientId();
-  const { data: profile, isLoading, error, refetch } = useClientProfile(clientId);
+  const { data: profile, isLoading, error, refetch } = useClientProfile(clientId || '');
+
+  // 未登录状态
+  if (!clientId) {
+    return (
+      <PlatformShell badge="Client" title="我的档案" description="查看客户信息、行业方向和服务偏好。">
+        <ErrorMessage message="未找到客户信息，请重新登录" onRetry={() => window.location.href = '/client/login'} />
+      </PlatformShell>
+    );
+  }
 
   // 加载状态
   if (isLoading) {

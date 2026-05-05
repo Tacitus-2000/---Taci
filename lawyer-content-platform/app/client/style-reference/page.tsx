@@ -12,7 +12,15 @@ import { FileText, Lightbulb } from 'lucide-react';
 
 export default function ClientStyleReferencePage() {
   const clientId = useClientId();
-  const { data, isLoading, error, refetch } = useStyleReferences(clientId);
+  const { data, isLoading, error, refetch } = useStyleReferences(clientId || '');
+
+  if (!clientId) {
+    return (
+      <PlatformShell badge="Client" title="风格参考" description="查看风格参考文案和写作指南。">
+        <ErrorMessage message="未找到客户信息，请重新登录" onRetry={() => window.location.href = '/client/login'} />
+      </PlatformShell>
+    );
+  }
 
   if (isLoading) {
     return (

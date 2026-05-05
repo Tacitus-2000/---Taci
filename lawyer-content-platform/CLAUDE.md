@@ -9,175 +9,164 @@
 - React 19.2.4
 - TypeScript 5
 - Tailwind CSS 4
-- Supabase (计划集成)
+- Supabase
 
-**当前状态：** 初始骨架已创建，需要审查和修复后再继续开发
-
----
-
-## 三人 Agent Team 工作规则
-
-本项目采用三个专门化 Agent 协作开发模式：
-
-### 1. Project Agent (Opus)
-**职责：** 项目管理、架构设计、需求分析
-- 负责理解用户需求并拆解任务
-- 制定技术方案和架构决策
-- 审查整体进度和质量
-- 更新项目文档（PROJECT_STATUS.md, TASK_BOARD.md, DECISIONS.md）
-- **模型配置：** claude-opus-4-7
-
-### 2. Program Agent (Sonnet)
-**职责：** 代码实现、功能开发
-- 根据 Project Agent 的任务分配编写代码
-- 实现具体功能模块
-- 修复 lint/type/import 等小错误
-- 编写单元测试
-- **模型配置：** claude-sonnet-4-6
-- **自动修复边界：**
-  - ✅ 可自动修复：lint 错误、类型错误、导入路径、构建错误
-  - ❌ 连续失败 2 次必须停止并报告给 Project Agent
-
-### 3. Review Agent (Opus)
-**职责：** 代码审查、安全检查、质量保证
-- 审查 Program Agent 提交的代码
-- 进行安全漏洞扫描
-- 检查代码规范和最佳实践
-- 更新 ERROR_LOG.md
-- **模型配置：** claude-opus-4-7
-
-### 协作流程
-
-```
-用户需求 → Project Agent (拆解任务) 
-         → Program Agent (实现代码) 
-         → Review Agent (审查代码) 
-         → Project Agent (验收/迭代)
-```
+**当前状态：** 认证系统和前端页面已完成，正在验证功能
 
 ---
 
-## Agent Harness 强制规则 🔒
+## 🎯 开发模式选择
 
-**⚠️ 重要：所有 Agent 在执行任何操作前，必须先阅读以下核心文档：**
-- `.claude/HARNESS_CORE.md` - 核心规则（必读）
-- `.claude/HARNESS_MATRIX.md` - 权限矩阵（快速参考）
-- `.claude/HARNESS_EXCEPTIONS.md` - 例外情况规则
+本项目支持两种开发模式，根据任务规模和重要性选择：
 
-### 核心原则
+### 模式 1：Superpowers（默认模式）
 
-本项目采用严格的角色隔离机制，确保三人 Agent Team 按照分工执行任务。
+**适用场景**：
+- ✅ 小型修复（< 5 个文件，< 2 小时）
+- ✅ 中等功能开发（5-20 个文件，2-8 小时）
+- ✅ 探索性编程（需求不明确）
+- ✅ 快速迭代和原型开发
+- ✅ 文档更新和配置调整
 
-**违反这些规则的任何操作都必须立即停止并报告。**
+**特点**：
+- 快速灵活
+- 自动触发相关 skill
+- 单个 AI 完成所有工作
+- 适合大多数日常开发任务
 
-### Team Lead (Project Agent) 强制禁止事项
-
-Team Lead 是**协调者**，不是**实现者**。
-
-**严格禁止：**
-1. ❌ **不得修改业务代码**
-   - 不得使用 `Edit` 工具修改 `/lib`, `/app`, `/types`, `/supabase` 下的任何文件
-   - 不得使用 `Write` 工具创建业务代码文件
-
-2. ❌ **不得修复错误**
-   - 不得修复 TypeScript 类型错误
-   - 不得修复 ESLint 错误
-   - 不得修复构建错误
-   - 发现错误时，必须分配给 Program Agent 修复
-
-3. ❌ **不得执行验证命令**
-   - 不得执行 `npm run build`
-   - 不得执行 `npm run type-check`
-   - 不得执行 `npm run lint`
-   - 验证工作必须由 Review Agent 执行
-
-4. ❌ **不得绕过流程**
-   - 不得在 Program Agent 报告错误后直接修复
-   - 不得在 Review Agent 审查前自行验证代码
-   - 不得跳过 Review Agent 直接进入下一阶段
-
-**允许操作：**
-- ✅ 读取项目状态文件
-- ✅ 更新项目管理文档（`docs/*.md`）
-- ✅ 启动 Program Agent / Review Agent
-- ✅ 汇总 Agent 执行结果
-- ✅ 向用户请求确认
-- ✅ 读取业务代码（仅用于状态判断）
-
-### Program Agent 职责边界
-
-**允许操作：**
-- ✅ 创建和修改业务代码文件
-- ✅ 修复 TypeScript/ESLint/构建错误
-- ✅ 安装依赖（经 Team Lead 批准）
-- ✅ 执行验证命令（自验证）
-- ✅ 修改配置文件（tsconfig.json, eslint.config.mjs）
-
-**严格禁止：**
-- ❌ 不得修改项目管理文档（除非 Team Lead 明确授权）
-- ❌ 不得执行 git commit/push
-- ❌ 不得修改 .env 文件
-- ❌ 不得跳过验证步骤直接报告完成
-
-### Review Agent 职责边界
-
-**允许操作：**
-- ✅ 读取所有代码文件
-- ✅ 运行验证命令（lint/build/type-check/test）
-- ✅ 报告发现的问题
-- ✅ 提出修复建议
-- ✅ 批准或拒绝阶段完成
-
-**严格禁止：**
-- ❌ **不得修改业务代码**（默认只读模式）
-- ❌ 不得修复发现的错误（必须报告给 Program Agent）
-- ❌ 不得安装或删除依赖
-- ❌ 不得执行 git commit/push
-
-### 标准工作流程
-
-```
-用户需求 
-  → Team Lead 分析并分配任务
-  → Program Agent 实现代码
-  → Program Agent 自验证（lint/build/type-check）
-  → Review Agent 正式审查
-  → Review Agent 批准或要求修复
-  → Team Lead 汇总结果并报告用户
-```
-
-**如果 Review Agent 发现错误：**
-1. Review Agent 报告错误给 Team Lead
-2. Team Lead 分配给 Program Agent 修复
-3. Program Agent 修复后重新自验证
-4. Review Agent 重新审查
-5. 循环直到通过
-
-### 违规处理
-
-**检测到违规时：**
-1. 立即停止当前操作
-2. 记录到 `docs/ERROR_LOG.md`
-3. 报告用户
-4. 等待用户指示
-
-**违规示例：**
-- Team Lead 直接修改 `/lib/ai/client.ts`（❌ 严重违规）
-- Team Lead 执行 `npm run build`（❌ 中度违规）
-- Review Agent 修改业务代码（❌ 严重违规）
-- 跳过 Review Agent 审查（❌ 中度违规）
-
-### 强制文档
-
-开发前必须阅读：
-- **`docs/AGENT_HARNESS.md`** - Agent 约束系统详细说明
-- **`docs/PHASE_LOCKS.md`** - 阶段权限控制
-- **`.claude/PERMISSIONS_POLICY.md`** - 权限策略
-- **`.claude/HOOKS_POLICY.md`** - Hook 策略
+**使用方式**：
+- 直接提出需求，无需特别说明
+- 系统会自动使用 Superpowers Skills
 
 ---
 
-## 禁止事项 🚫
+### 模式 2：Team Skill（严格模式）
+
+**适用场景**：
+- ✅ 大型功能开发（> 20 个文件，> 8 小时）
+- ✅ 安全敏感功能（认证、授权、支付、加密）
+- ✅ 数据库架构变更（表结构、迁移、RLS）
+- ✅ 核心架构重构（影响多个模块）
+- ✅ 用户明确要求严格质量控制
+
+**特点**：
+- 严格的三人 Agent Team 协作
+- 独立的代码审查
+- 完整的文档记录
+- 质量保证最强
+
+**使用方式**：
+- 明确说明"使用 team 模式"或"启用 agent team"
+- 系统会启动三人 Agent Team 协作流程
+
+**详细文档**：参见 `team-skill` (C:\Users\56834\.claude\skills\team-skill\skill.md)
+
+---
+
+## 🔍 代码审查
+
+### Code Review Excellence (官方 Skill)
+
+**何时使用**：
+- ✅ 代码实现完成后
+- ✅ 准备提交 PR 前
+- ✅ 发现 bug 需要排查
+- ✅ 性能问题需要诊断
+- ✅ 安全功能需要验证
+- ✅ 架构审查
+- ✅ 指导初级开发者
+
+**触发方式**：
+- 说"审查代码"或"code review"
+- 系统会自动启动专业代码审查
+
+**支持的语言/框架**：
+- React 19, Vue 3, TypeScript
+- Rust, Go, Java, Python, C/C++
+- CSS/Less/Sass, Qt
+
+**审查维度**：
+- 代码质量（规范、复杂度、可维护性）
+- 安全性（SQL 注入、XSS、认证授权）
+- 架构（模块职责、依赖关系、SOLID 原则）
+- 性能（算法复杂度、N+1 查询、内存泄漏）
+- 测试（覆盖率、边界条件）
+- 验证（lint、type-check、build）
+
+**特色功能**：
+- 📚 建设性反馈（不是指责，而是教育）
+- 🎯 优先级标签（blocking/important/nit/suggestion）
+- 📖 语言特定指南（详细的最佳实践）
+- ✅ 审查清单（系统化的审查流程）
+
+**详细文档**：参见 `code-review-excellence` (C:\Users\56834\.claude\skills\code-review-skill\skill.md)
+
+---
+
+## 🧪 前端测试
+
+### gstack Skill
+
+**何时使用**：
+- ✅ 测试前端页面
+- ✅ 验证用户流程
+- ✅ UI/UX 验证
+- ✅ 截图和 bug 报告
+- ✅ 部署后验证
+
+**触发方式**：
+- 说"测试页面"或"打开网站"
+- 系统会启动无头浏览器进行测试
+
+**功能**：
+- 自动导航和交互
+- 截图和状态验证
+- 表单提交测试
+- 响应式布局测试
+
+---
+
+## 📋 开发规范
+
+### 文件结构
+```
+lawyer-content-platform/
+├── app/                    # Next.js App Router 页面
+├── lib/                    # 工具函数和业务逻辑
+├── types/                  # TypeScript 类型定义
+├── components/             # React 组件
+├── supabase/              # Supabase 配置和迁移
+├── docs/                  # 项目文档
+│   ├── PROJECT_STATUS.md
+│   ├── TASK_BOARD.md
+│   ├── DECISIONS.md
+│   ├── ERROR_LOG.md
+│   └── NEXT_ACTIONS.md
+├── CLAUDE.md              # 本文件
+└── AGENTS.md              # Agent 配置（如果使用 Team Skill）
+```
+
+### 代码规范
+- 使用 TypeScript 严格模式
+- 遵循 ESLint 配置
+- 组件使用函数式组件 + Hooks
+- 优先使用 Server Components（Next.js 16）
+- CSS 使用 Tailwind CSS 4
+
+### 命名约定
+- 组件：PascalCase（`UserProfile.tsx`）
+- 函数/变量：camelCase（`getUserData`）
+- 类型/接口：PascalCase（`UserData`）
+- 常量：UPPER_SNAKE_CASE（`API_BASE_URL`）
+
+### Git 工作流
+- 功能分支：`feature/功能名称`
+- 修复分支：`fix/问题描述`
+- 提交信息：`类型: 简短描述`（如 `feat: 添加用户登录功能`）
+
+---
+
+## 🚫 禁止事项
 
 ### 1. 不做第二版风格蒸馏
 - 不要尝试从现有代码中"学习风格"并应用到新代码
@@ -205,59 +194,7 @@ Team Lead 是**协调者**，不是**实现者**。
 
 ---
 
-## 开发规范
-
-### 文件结构
-```
-lawyer-content-platform/
-├── app/                    # Next.js App Router 页面
-├── lib/                    # 工具函数和业务逻辑
-├── types/                  # TypeScript 类型定义
-├── components/             # React 组件
-├── supabase/              # Supabase 配置和迁移
-├── docs/                  # 项目文档
-│   ├── PROJECT_STATUS.md
-│   ├── TASK_BOARD.md
-│   ├── DECISIONS.md
-│   ├── ERROR_LOG.md
-│   └── NEXT_ACTIONS.md
-├── CLAUDE.md              # 本文件
-└── AGENTS.md              # Agent 配置
-```
-
-### 代码规范
-- 使用 TypeScript 严格模式
-- 遵循 ESLint 配置
-- 组件使用函数式组件 + Hooks
-- 优先使用 Server Components（Next.js 16）
-- CSS 使用 Tailwind CSS 4
-
-### 命名约定
-- 组件：PascalCase（`UserProfile.tsx`）
-- 函数/变量：camelCase（`getUserData`）
-- 类型/接口：PascalCase（`UserData`）
-- 常量：UPPER_SNAKE_CASE（`API_BASE_URL`）
-
-### Git 工作流
-- 功能分支：`feature/功能名称`
-- 修复分支：`fix/问题描述`
-- 提交信息：`类型: 简短描述`（如 `feat: 添加用户登录功能`）
-
----
-
-## Next.js 16 特别注意事项
-
-⚠️ **重要：** 本项目使用 Next.js 16.2.4，与训练数据中的版本可能有重大差异。
-
-**开发前必读：**
-1. 查阅 `node_modules/next/dist/docs/` 中的最新文档
-2. 注意 API 变更和废弃警告
-3. 优先使用 Server Components
-4. 了解新的缓存策略
-
----
-
-## 环境配置
+## ⚙️ 环境配置
 
 ### 必需环境变量
 ```bash
@@ -266,37 +203,49 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-# 其他配置
+# JWT
+JWT_SECRET=your_jwt_secret
+
+# API（重要：服务器默认运行在 3001）
+NEXT_PUBLIC_API_URL=http://localhost:3001/api
+
+# Node 环境
 NODE_ENV=development
 ```
 
 ### 本地开发
 ```bash
 npm install          # 安装依赖
-npm run dev          # 启动开发服务器
+npm run dev          # 启动开发服务器（默认端口 3001）
 npm run build        # 构建生产版本
 npm run lint         # 运行 ESLint
+npm run type-check   # TypeScript 类型检查
 ```
+
+**重要提示**：
+- 开发服务器默认运行在 `http://localhost:3001`
+- 如果端口被占用，Next.js 会自动使用下一个可用端口
+- 确保 `.env.local` 中的 `NEXT_PUBLIC_API_URL` 与实际端口一致
 
 ---
 
-## 文档维护
+## 📚 文档维护
 
-### 必须更新的文档
+### 必须更新的文档（使用 Team Skill 时）
 - **PROJECT_STATUS.md** - 每次重大进展后更新
 - **TASK_BOARD.md** - 任务状态变更时更新
 - **DECISIONS.md** - 做出技术决策时记录
 - **ERROR_LOG.md** - 遇到错误时记录
 - **NEXT_ACTIONS.md** - 每个开发会话结束时更新
 
-### 文档更新责任
+### 文档更新责任（Team Skill 模式）
 - Project Agent：负责所有文档的整体协调
 - Program Agent：更新 ERROR_LOG.md 中的技术错误
 - Review Agent：更新 ERROR_LOG.md 中的代码质量问题
 
 ---
 
-## 参考资源
+## 🔗 参考资源
 
 - [Next.js 文档](https://nextjs.org/docs)
 - [React 19 文档](https://react.dev)
@@ -306,5 +255,110 @@ npm run lint         # 运行 ESLint
 
 ---
 
-**最后更新：** 2026-05-01  
-**维护者：** Project Agent
+## 📝 项目特定信息
+
+### 当前项目状态
+- ✅ 数据库架构（14 个表）
+- ✅ 认证系统（JWT + 双角色）
+- ✅ Admin 前端（5 个管理页面）
+- ✅ Client 前端（8 个客户页面）
+- ✅ 后端 API（42 个端点）
+- ⏳ AI 工作流集成（待实现）
+- ⏳ RLS 策略配置（待实现）
+
+### 测试账号
+- **Admin**: admin@example.com / admin123
+- **Client**: client@example.com / client123
+
+### 本地网站
+- **地址**: http://localhost:3001
+- **Admin 登录**: http://localhost:3001/admin/login
+- **Client 登录**: http://localhost:3001/client/login
+
+---
+
+## 💡 使用建议
+
+### 日常开发（推荐 Superpowers）
+```
+# 示例 1：修复一个 bug
+"修复登录页面的表单验证问题"
+
+# 示例 2：添加一个小功能
+"在用户档案页面添加编辑按钮"
+
+# 示例 3：优化代码
+"优化 API 客户端的错误处理"
+```
+
+### 大型功能开发（推荐 Team Skill）
+```
+# 示例 1：新功能开发
+"使用 team 模式开发用户注册功能"
+
+# 示例 2：安全功能
+"使用 team 模式实现 RLS 策略"
+
+# 示例 3：架构重构
+"使用 team 模式重构 AI 工作流系统"
+```
+
+### 代码审查（推荐 Code Review Skill）
+```
+# 示例 1：审查单个文件
+"审查 lib/api/client.ts 文件"
+
+# 示例 2：审查整个功能
+"审查用户认证功能的所有代码"
+
+# 示例 3：安全审查
+"对认证系统进行安全审查"
+```
+
+### 前端测试（推荐 gstack）
+```
+# 示例 1：测试页面
+"测试 http://localhost:3001/admin/login 页面"
+
+# 示例 2：测试用户流程
+"测试完整的登录到查看文案的流程"
+
+# 示例 3：截图
+"打开客户首页并截图"
+```
+
+---
+
+## 🎓 Skills 优先级
+
+根据 Superpowers 的 **Instruction Priority** 规则：
+
+1. **用户明确指令**（最高优先级）
+   - 本 CLAUDE.md 的规则
+   - 用户在对话中的直接要求
+
+2. **Skills**（中等优先级）
+   - team-skill
+   - code-review-skill
+   - superpowers skills
+   - gstack
+
+3. **系统默认**（最低优先级）
+
+**重要**：本 CLAUDE.md 的规则始终优先于任何 skill。
+
+---
+
+## 📞 获取帮助
+
+如有疑问，请：
+1. 阅读本文档
+2. 查看 `docs/` 目录下的项目文档
+3. 查看 `CURRENT_CONTEXT.md` 了解项目最新状态
+4. 询问用户
+
+---
+
+**最后更新：** 2026-05-05  
+**维护者：** 项目团队  
+**版本：** 2.0（新增 Skills 集成）

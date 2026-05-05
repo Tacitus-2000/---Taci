@@ -6,9 +6,10 @@
  */
 
 import { NextRequest } from 'next/server';
-import { getSupabaseClient } from '@/lib/supabase/client';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { apiSuccess, apiError } from '@/lib/api/response';
 import { validateUUID, validateRequired } from '@/lib/api/validation';
+import { resolveClientId, isErrorResponse } from '@/lib/api/client-helper';
 import type { ClientProfilePublic } from '@/types/client';
 
 /**
@@ -16,23 +17,30 @@ import type { ClientProfilePublic } from '@/types/client';
  * 获取客户档案
  *
  * Query Parameters:
- * - client_id: string (required) - 客户 ID
+ * - client_id: string (required) - 用户 ID（注意：参数名为 client_id 但实际是 user_id）
  *
  * 数据过滤规则:
  * - 只返回 visible_to_client = true 的档案
  * - 排除 internal_notes 字段
- * - 只返回当前 client_id 的数据
+ * - 只返回当前用户关联的 client_id 的数据
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const clientId = searchParams.get('client_id');
+    const userId = searchParams.get('client_id'); // 实际上是 user_id
 
     // 验证必填参数
-    const validClientId = validateRequired(clientId, 'client_id');
-    validateUUID(validClientId, 'client_id');
+    const validUserId = validateRequired(userId, 'client_id');
+    validateUUID(validUserId, 'client_id');
 
-    const supabase = getSupabaseClient();
+    // 解析并验证 client_id（包含授权检查）
+    const result = await resolveClientId(request, validUserId);
+    if (isErrorResponse(result)) {
+      return result; // 返回错误响应（401/403/404/500）
+    }
+
+    const { clientId } = result;
+    const supabase = getSupabaseAdmin();
 
     // 查询客户档案
     // 使用显式字段选择，排除 internal_notes
@@ -55,13 +63,13 @@ export async function GET(request: NextRequest) {
         created_at,
         updated_at
       `)
-      .eq('client_id', validClientId)
+      .eq('client_id', clientId)
       .eq('visible_to_client', true)
       .single();
 
     if (error) {
       if (error.code === 'PGRST116') {
-        console.error('[Client API] Profile not found for client:', validClientId);
+        console.error('[Client API] Profile not found for client:', clientId);
         return apiError('PROFILE_NOT_FOUND', 'Client profile not found or not visible', 404);
       }
       console.error('[Client API] Failed to fetch client profile:', error);
