@@ -4,6 +4,8 @@
  */
 
 import type { AgentState, AgentStateUpdate } from '../schemas/agentStateSchema';
+import { createAIClient } from '../ai/client';
+import { buildReadabilityPrompt, READABILITY_SYSTEM_PROMPT } from '../ai/prompts/readabilityPrompt';
 
 /**
  * 可读性审查 Agent 类
@@ -75,7 +77,7 @@ export class ReadabilityReviewAgent {
   }
 
   /**
-   * 执行可读性审查（Mock 实现）
+   * 执行可读性审查（使用 Claude API）
    *
    * @param state - 当前 Agent 状态
    * @returns 审查结果
@@ -87,80 +89,46 @@ export class ReadabilityReviewAgent {
     suggestions?: Record<string, unknown>;
   }> {
     const draftScript = state.draftScript!;
-    const title = draftScript.title || '';
-    const body = draftScript.body || '';
-    const hook = draftScript.hook || '';
 
-    // Mock 数据：模拟可读性审查逻辑
-    const issues: Record<string, unknown> = {};
-    const suggestions: Record<string, unknown> = {};
-    let score = 100;
+    // 构建 Prompt
+    const prompt = buildReadabilityPrompt(draftScript as Record<string, any>);
 
-    // 检查标题长度
-    if (title.length > 30) {
-      issues.titleTooLong = {
-        severity: 'medium',
-        description: '标题过长，建议控制在30字以内',
-        currentLength: title.length,
-      };
-      suggestions.titleOptimization = '建议精简标题，突出核心关键词';
-      score -= 10;
+    // 调用 Claude API
+    const aiClient = createAIClient();
+    const response = await aiClient.chat(
+      [{ role: 'user', content: prompt }],
+      { system: READABILITY_SYSTEM_PROMPT }
+    );
+
+    // 解析 JSON 响应
+    let result: any;
+    const responseContent = response.content;
+    try {
+      // 尝试直接解析
+      result = JSON.parse(responseContent);
+    } catch {
+      // 尝试提取 ```json 代码块
+      const jsonMatch = responseContent.match(/```json\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        result = JSON.parse(jsonMatch[1]);
+      } else {
+        throw new Error('无法解析 API 响应为 JSON 格式');
+      }
     }
 
-    // 检查段落长度
-    const paragraphs = body.split('\n\n').filter((p) => p.trim().length > 0);
-    const longParagraphs = paragraphs.filter((p) => p.length > 300);
-    if (longParagraphs.length > 0) {
-      issues.longParagraphs = {
-        severity: 'low',
-        description: '部分段落过长，影响阅读体验',
-        count: longParagraphs.length,
-      };
-      suggestions.paragraphBreaking = '建议将长段落拆分为多个短段落，每段控制在200字以内';
-      score -= 5;
+    // 验证必需字段
+    if (typeof result.passed !== 'boolean') {
+      throw new Error('响应缺少必需字段: passed');
     }
-
-    // 检查是否有引导语
-    if (!hook || hook.length < 20) {
-      issues.weakHook = {
-        severity: 'medium',
-        description: '开头引导语不够吸引人',
-      };
-      suggestions.hookImprovement = '建议增强开头的吸引力，使用问题、数据或故事引入';
-      score -= 10;
+    if (typeof result.score !== 'number') {
+      throw new Error('响应缺少必需字段: score');
     }
-
-    // 检查结构清晰度
-    const hasHeadings = body.includes('##') || body.includes('**');
-    if (!hasHeadings) {
-      issues.lackStructure = {
-        severity: 'high',
-        description: '文案缺乏清晰的结构层次',
-      };
-      suggestions.structureImprovement = '建议使用标题、加粗等格式增强结构层次感';
-      score -= 15;
-    }
-
-    // 检查专业术语密度
-    const technicalTerms = ['法律效力', '违约责任', '争议解决', '知识产权'];
-    const termCount = technicalTerms.filter((term) => body.includes(term)).length;
-    if (termCount > 5) {
-      issues.tooManyTerms = {
-        severity: 'low',
-        description: '专业术语过多，可能影响普通读者理解',
-        termCount,
-      };
-      suggestions.simplification = '建议适当简化专业术语，或增加通俗解释';
-      score -= 5;
-    }
-
-    const passed = score >= 70;
 
     return {
-      passed,
-      score,
-      issues: Object.keys(issues).length > 0 ? issues : undefined,
-      suggestions: Object.keys(suggestions).length > 0 ? suggestions : undefined,
+      passed: result.passed,
+      score: result.score,
+      issues: result.issues,
+      suggestions: result.suggestions,
     };
   }
 
