@@ -75,6 +75,53 @@ export type AgentState = z.infer<typeof agentStateSchema>;
 export type AgentStateUpdate = Partial<AgentState>;
 
 /**
+ * 客户档案类型
+ */
+export interface ClientProfile {
+  id: string;
+  clientId: string;
+  name: string;
+  expertise: string[];
+  experience: string;
+  targetAudience: string;
+  contentPreferences: {
+    topics?: string[];
+    frequency?: string;
+    platforms?: string[];
+  };
+  previousContent?: {
+    totalPosts?: number;
+    avgEngagement?: number;
+    topPerformingTopics?: string[];
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * 行业模板类型
+ */
+export interface IndustryTemplate {
+  id: string;
+  industry: string;
+  contentGuidelines: {
+    tone?: string;
+    style?: string;
+    avoidTopics?: string[];
+  };
+  platformSettings: {
+    preferredPlatforms?: string[];
+    contentLength?: {
+      short?: string;
+      medium?: string;
+      long?: string;
+    };
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
  * Agent 状态初始化输入
  */
 export const agentStateInitSchema = z.object({

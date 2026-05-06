@@ -4,6 +4,8 @@
  */
 
 import type { AgentState, AgentStateUpdate } from '../schemas/agentStateSchema';
+import { createAIClient } from '../ai/client';
+import { buildRiskPrompt, RISK_SYSTEM_PROMPT } from '../ai/prompts/riskPrompt';
 
 /**
  * 风险审查 Agent 类
@@ -80,7 +82,7 @@ export class RiskReviewAgent {
   }
 
   /**
-   * 执行风险审查（Mock 实现）
+   * 执行风险审查（使用 Claude API）
    *
    * @param state - 当前 Agent 状态
    * @returns 审查结果
@@ -93,107 +95,47 @@ export class RiskReviewAgent {
   }> {
     const draftScript = state.draftScript!;
     const industryTemplate = state.industryTemplate as Record<string, unknown>;
-    const complianceRules = (industryTemplate.complianceRules as Record<string, unknown>) || {};
 
-    const title = draftScript.title || '';
-    const body = draftScript.body || '';
-    const hook = draftScript.hook || '';
-    const fullText = `${title} ${hook} ${body}`;
+    // 创建 AI 客户端
+    const aiClient = createAIClient();
 
-    // Mock 数据：模拟风险审查逻辑
-    const issues: Record<string, unknown> = {};
-    const suggestions: Record<string, unknown> = {};
-    let score = 100;
+    // 构建 Prompt
+    const prompt = buildRiskPrompt(draftScript, industryTemplate);
 
-    // 检查禁止话题
-    const prohibitedTopics = (complianceRules.prohibitedTopics as string[]) || [
-      '虚假承诺',
-      '保证胜诉',
-    ];
-    const foundProhibited = prohibitedTopics.filter((topic) => fullText.includes(topic));
-    if (foundProhibited.length > 0) {
-      issues.prohibitedContent = {
-        severity: 'critical',
-        description: '文案包含禁止内容',
-        foundTopics: foundProhibited,
-      };
-      suggestions.removeProhibited = `必须删除以下禁止内容: ${foundProhibited.join('、')}`;
-      score -= 50;
+    // 调用 Claude API
+    const response = await aiClient.chat(
+      [{ role: 'user', content: prompt }],
+      { system: RISK_SYSTEM_PROMPT }
+    );
+
+    // 解析响应
+    let reviewResult;
+    try {
+      // 尝试直接解析 JSON
+      reviewResult = JSON.parse(response.content);
+    } catch {
+      // 如果失败，尝试提取 ```json 代码块
+      const jsonMatch = response.content.match(/```json\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        reviewResult = JSON.parse(jsonMatch[1]);
+      } else {
+        throw new Error('无法解析 AI 响应为 JSON 格式');
+      }
     }
 
-    // 检查是否包含免责声明
-    const disclaimer = complianceRules.requiredDisclaimer as string;
-    if (disclaimer && !fullText.includes(disclaimer) && !draftScript.style_note?.includes(disclaimer)) {
-      issues.missingDisclaimer = {
-        severity: 'high',
-        description: '缺少必需的免责声明',
-      };
-      suggestions.addDisclaimer = `必须添加免责声明: ${disclaimer}`;
-      score -= 20;
+    // 验证必需字段
+    if (
+      typeof reviewResult.passed !== 'boolean' ||
+      typeof reviewResult.score !== 'number'
+    ) {
+      throw new Error('AI 响应缺少必需字段: passed, score');
     }
-
-    // 检查绝对化用语
-    const absoluteWords = ['一定', '必然', '保证', '100%', '绝对'];
-    const foundAbsolute = absoluteWords.filter((word) => fullText.includes(word));
-    if (foundAbsolute.length > 0) {
-      issues.absoluteLanguage = {
-        severity: 'medium',
-        description: '使用了绝对化用语，可能引发法律风险',
-        foundWords: foundAbsolute,
-      };
-      suggestions.softLanguage = '建议使用更谨慎的表述，如"通常"、"一般情况下"等';
-      score -= 15;
-    }
-
-    // 检查是否涉及具体案件承诺
-    const promisePatterns = ['保证赢', '必胜', '包赢', '一定成功'];
-    const foundPromises = promisePatterns.filter((pattern) => fullText.includes(pattern));
-    if (foundPromises.length > 0) {
-      issues.illegalPromises = {
-        severity: 'critical',
-        description: '包含违规承诺，违反律师执业规范',
-        foundPromises,
-      };
-      suggestions.removePromises = '必须删除所有关于案件结果的承诺性表述';
-      score -= 40;
-    }
-
-    // 检查是否贬低同行
-    const negativeWords = ['其他律师都不行', '只有我能', '别的律师不懂'];
-    const foundNegative = negativeWords.filter((word) => fullText.includes(word));
-    if (foundNegative.length > 0) {
-      issues.unprofessionalLanguage = {
-        severity: 'high',
-        description: '包含贬低同行的不当言论',
-        foundWords: foundNegative,
-      };
-      suggestions.professionalTone = '建议使用专业、客观的表述，避免贬低同行';
-      score -= 25;
-    }
-
-    // 检查是否包含敏感信息
-    const sensitivePatterns = [
-      /\d{11}/g, // 手机号
-      /\d{15}|\d{18}/g, // 身份证号
-      /具体金额.*\d+万/g, // 具体金额
-    ];
-    const hasSensitiveInfo = sensitivePatterns.some((pattern) => pattern.test(fullText));
-    if (hasSensitiveInfo) {
-      issues.sensitiveInformation = {
-        severity: 'high',
-        description: '可能包含敏感个人信息或具体金额',
-      };
-      suggestions.anonymize = '建议对敏感信息进行脱敏处理';
-      score -= 20;
-    }
-
-    const passed = score >= 80 && !issues.prohibitedContent && !issues.illegalPromises;
 
     return {
-      passed,
-      score,
-      issues: Object.keys(issues).length > 0 ? issues : undefined,
-      suggestions: Object.keys(suggestions).length > 0 ? suggestions : undefined,
+      passed: reviewResult.passed,
+      score: reviewResult.score,
+      issues: reviewResult.issues,
+      suggestions: reviewResult.suggestions,
     };
   }
 

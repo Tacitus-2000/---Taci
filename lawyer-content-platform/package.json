@@ -13,6 +13,7 @@
     "test:topic-agent": "tsx scripts/test-topic-agent.ts",
     "test:script-agent": "tsx scripts/test-script-agent.ts",
     "test:readability-agent": "tsx scripts/test-readability-agent.ts",
+    "test:risk-agent": "tsx scripts/test-risk-agent.ts",
     "seed:test": "tsx scripts/seed-test-data.ts",
     "typecheck": "tsc --noEmit"
   },

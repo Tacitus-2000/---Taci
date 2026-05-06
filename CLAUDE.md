@@ -1,19 +1,53 @@
 # Claude Code Project Rules
 
-## Core Workflow
+## Core Principle
 
 Use a single-agent workflow by default.
 
-Default skills:
-
-1. `superpower / systematic-debugging`
-2. `superpower / verification-before-completion`
-3. `supabase-postgres-best-practices`
-4. `microsoft/playwright-cli`
-
 Do not create multi-agent teams unless explicitly requested.
 
-Do not use extra skills unless explicitly necessary.
+Use the smallest effective skill set.
+
+Default skill responsibilities:
+
+1. `planning-with-files`
+   - Daily task planning
+   - Progress tracking
+   - Short execution checklist
+
+2. `superpower / systematic-debugging`
+   - Bug fixing
+   - Root cause analysis
+   - Evidence-based debugging
+
+3. `superpower / verification-before-completion`
+   - Mandatory verification after code changes
+   - No completion claim without evidence
+
+4. `gstack / plan-eng-review`
+   - Large direction decisions
+   - Architecture review
+   - Complex task planning
+   - Engineering plan review before implementation
+
+5. `supabase-postgres-best-practices`
+   - Supabase
+   - PostgreSQL
+   - SQL
+   - RLS
+   - migrations
+   - schema and database access logic
+
+6. `microsoft/playwright-cli`
+   - Browser verification
+   - Login flow
+   - cookies
+   - redirects
+   - console errors
+   - network requests
+   - API response inspection
+
+Do not use extra skills unless clearly necessary.
 
 Do not automatically:
 - create git branches
@@ -23,64 +57,100 @@ Do not automatically:
 
 ---
 
-## Working Principles
+## Skill Usage Rules
 
-Act as one disciplined engineer.
+### 1. `planning-with-files`
 
-Priority:
+Use for daily task planning and progress tracking.
 
-1. Find the real root cause.
-2. Make the smallest safe change.
-3. Avoid low-level mistakes.
-4. Verify before reporting completion.
-5. Report evidence, not guesses.
+Use when:
+- starting a task with more than one step
+- fixing a bug that may touch multiple files
+- implementing a feature
+- tracking progress across several edits
 
-Do not modify code without reading relevant files first.
-
-Do not guess the root cause.
-
-Do not make large architectural changes for small bugs.
+Rules:
+- Keep plans short.
+- Prefer checklist format.
+- Do not write long planning documents unless requested.
+- Update progress only after meaningful milestones.
+- Do not use planning as a substitute for reading code or verifying results.
 
 ---
 
-## Superpower Rules
-
-Use only these two Superpower abilities by default:
-
-### `systematic-debugging`
+### 2. `superpower / systematic-debugging`
 
 Use for bug fixing.
 
 Required process:
-
 1. Read relevant files.
 2. Locate the actual failure point.
 3. List likely causes.
-4. Verify causes with code, logs, terminal output, browser behavior, or database results.
+4. Verify causes with evidence from code, logs, terminal output, browser behavior, or database results.
 5. Modify only after evidence is found.
 6. Make the smallest safe fix.
 7. Check all related call sites.
 
-### `verification-before-completion`
+Do not:
+- guess the root cause
+- modify code before reading relevant files
+- refactor unrelated code
+- fix only the surface symptom
+
+---
+
+### 3. `superpower / verification-before-completion`
 
 Use after every code change.
 
 Do not claim completion before verification.
 
 Report:
-
 - TypeScript result
 - Lint result
 - Build result
 - Playwright result, if browser behavior is involved
 - Supabase/Postgres result, if database work is involved
+- Remaining risks
 
 ---
 
-## Supabase / Postgres Rules
+### 4. `gstack / plan-eng-review`
 
-Use `supabase-postgres-best-practices` only when the task involves:
+Use only for large direction, complex tasks, or architecture decisions.
 
+Use when:
+- the task affects multiple modules
+- the task changes data flow
+- authentication or permission architecture may be affected
+- database structure may need redesign
+- API boundaries are unclear
+- frontend/backend responsibility is unclear
+- the solution may require refactoring
+- the user asks for architecture review, engineering review, or plan review
+
+Rules:
+- Use it before implementation, not after.
+- Keep the review concise.
+- Output practical recommendations.
+- Do not create a multi-agent team.
+- Do not invoke other gstack roles unless explicitly requested.
+- Do not turn small bug fixes into architecture projects.
+
+Expected output:
+1. Current problem framing
+2. Architecture impact
+3. Recommended approach
+4. Files/modules likely affected
+5. Risks and edge cases
+6. Verification plan
+7. Whether implementation should proceed
+
+---
+
+### 5. `supabase-postgres-best-practices`
+
+Use only when the task involves:
 - Supabase
 - PostgreSQL
 - SQL
@@ -94,25 +164,23 @@ Use `supabase-postgres-best-practices` only when the task involves:
 - database functions
 - backend database access logic
 
-Database rules:
-
-1. Do not guess table names.
-2. Do not guess column names.
-3. Do not modify RLS casually.
-4. Never expose service role keys to client-side code.
-5. For RLS changes, explain:
-   - who can read
-   - who can insert
-   - who can update
-   - who can delete
-   - how tenant/client isolation is enforced
+Rules:
+- Do not guess table names.
+- Do not guess column names.
+- Do not modify RLS casually.
+- Never expose service role keys to client-side code.
+- For RLS changes, explain:
+  - who can read
+  - who can insert
+  - who can update
+  - who can delete
+  - how tenant/client isolation is enforced
 
 ---
 
-## Playwright Rules
+### 6. `microsoft/playwright-cli`
 
-Use `microsoft/playwright-cli` only when browser behavior must be verified, including:
-
+Use only when browser behavior must be verified, including:
 - login flow
 - redirects
 - cookies
@@ -127,7 +195,6 @@ Use `microsoft/playwright-cli` only when browser behavior must be verified, incl
 - one page works but another page fails
 
 For `Unexpected token '<'`, inspect:
-
 1. failed request URL
 2. status code
 3. content-type
@@ -135,7 +202,34 @@ For `Unexpected token '<'`, inspect:
 5. whether HTML was returned
 6. whether it is a 404 page, login page, middleware redirect, or Next.js error page
 
-Do not assume it is only a JSON parsing issue.
+---
+
+## Default Execution Flow
+
+For normal development tasks:
+
+1. Use `planning-with-files` to create a short plan.
+2. Read relevant files.
+3. If fixing a bug, use `superpower / systematic-debugging`.
+4. If the task is large or architectural, use `gstack / plan-eng-review` before implementation.
+5. If database work is involved, use `supabase-postgres-best-practices`.
+6. Make the smallest safe change.
+7. Run available checks.
+8. If browser behavior is involved, use `microsoft/playwright-cli`.
+9. Use `superpower / verification-before-completion`.
+10. Update the planning file with results and remaining risks.
+11. Report evidence.
+
+For small one-file changes:
+- Planning may be very short.
+- Do not use gstack.
+- Do not over-document.
+- Still verify before completion.
+
+For large direction or architecture tasks:
+- Use `gstack / plan-eng-review`.
+- Do not implement until the scope and risks are clear.
+- Keep the plan concise and executable.
 
 ---
 

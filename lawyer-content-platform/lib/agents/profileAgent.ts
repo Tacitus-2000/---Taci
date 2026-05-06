@@ -3,7 +3,9 @@
  * 负责生成和更新客户档案
  */
 
-import type { AgentState, AgentStateUpdate } from '../schemas/agentStateSchema';
+import type { AgentState, AgentStateUpdate, ClientProfile, IndustryTemplate } from '../schemas/agentStateSchema';
+import { createAIClient } from '../ai/client';
+import { buildProfilePrompt, PROFILE_SYSTEM_PROMPT } from '../ai/prompts/profilePrompt';
 
 /**
  * 档案生成 Agent 类
@@ -62,106 +64,70 @@ export class ProfileAgent {
   }
 
   /**
-   * 生成内容定位档案（Mock 实现）
+   * 生成内容定位档案（使用 Claude API）
    *
    * @param state - 当前 Agent 状态
    * @returns 内容定位档案
    */
   private async generateContentPosition(state: AgentState): Promise<Record<string, unknown>> {
-    const clientProfile = state.clientProfile as Record<string, unknown>;
-    const industryTemplate = state.industryTemplate as Record<string, unknown>;
+    const clientProfile = state.clientProfile as unknown as ClientProfile;
+    const industryTemplate = state.industryTemplate as unknown as IndustryTemplate;
 
-    const name = clientProfile.name as string;
-    const expertise = (clientProfile.expertise as string[]) || ['法律咨询'];
-    const experience = clientProfile.experience as string;
-    const targetAudience = clientProfile.targetAudience as string;
-    const contentPreferences = (clientProfile.contentPreferences as Record<string, unknown>) || {};
-    const previousContent = (clientProfile.previousContent as Record<string, unknown>) || {};
+    // 创建 AI 客户端
+    const aiClient = createAIClient();
 
-    const contentGuidelines = (industryTemplate.contentGuidelines as Record<string, unknown>) || {};
-    const platformSettings = (industryTemplate.platformSettings as Record<string, unknown>) || {};
+    // 构建 Prompt
+    const userPrompt = buildProfilePrompt(clientProfile, industryTemplate);
 
-    // Mock 数据：模拟 AI 分析生成的内容定位
-    return {
-      // 基础信息
-      lawyerName: name,
-      experience,
+    // 调用 Claude API
+    const response = await aiClient.chat(
+      [{ role: 'user', content: userPrompt }],
+      {
+        system: PROFILE_SYSTEM_PROMPT,
+        temperature: 0.7,
+        maxTokens: 4096,
+      }
+    );
 
-      // 专业领域定位
-      professionalFields: expertise,
-      coreCompetencies: expertise.map((field) => `${field}实务操作`),
-      serviceScope: ['企业法律顾问', '合同审查', '诉讼代理', '法律咨询'],
+    // 解析 JSON 响应
+    let contentPosition: Record<string, unknown>;
+    try {
+      // 尝试直接解析 JSON
+      contentPosition = JSON.parse(response.content);
+    } catch (error) {
+      // 如果解析失败，尝试提取 JSON 代码块
+      const jsonMatch = response.content.match(/```json\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        contentPosition = JSON.parse(jsonMatch[1]);
+      } else {
+        // 输出原始响应以便调试
+        console.error('[ProfileAgent] 无法解析 AI 响应');
+        console.error('[ProfileAgent] 原始响应:', response.content.substring(0, 500));
+        throw new Error('无法解析 AI 响应为 JSON 格式');
+      }
+    }
 
-      // 目标受众定位
-      targetAudience: [targetAudience, '企业管理者', '创业者', '法务人员'],
-      audienceCharacteristics: {
-        industry: ['互联网', '制造业', '服务业'],
-        companySize: ['中小企业', '初创公司'],
-        painPoints: ['合同风险', '合规问题', '纠纷处理', '知识产权保护'],
-      },
+    // 验证必需字段
+    const requiredFields = [
+      'lawyerName',
+      'experience',
+      'professionalFields',
+      'targetAudience',
+      'contentDirection',
+      'contentStyle',
+      'contentStrategy',
+    ];
 
-      // 内容方向定位
-      contentDirection: [
-        '实用法律知识普及',
-        '案例分析与风险提示',
-        '法律法规解读',
-        '企业合规指南',
-      ],
-      contentTopics: contentPreferences.topics || [
-        '合同风险防范',
-        '劳动用工管理',
-        '知识产权保护',
-        '股权设计',
-      ],
+    // 输出调试信息
+    console.log('[ProfileAgent] 解析后的字段:', Object.keys(contentPosition));
 
-      // 内容风格定位
-      contentStyle: {
-        tone: contentGuidelines.tone || 'professional',
-        language: '专业但易懂',
-        format: ['图文结合', '案例分析', '要点总结'],
-        length: platformSettings.contentLength || { medium: '1000-1500字' },
-      },
+    for (const field of requiredFields) {
+      if (!contentPosition[field]) {
+        throw new Error(`生成的内容定位档案缺少必需字段: ${field}`);
+      }
+    }
 
-      // 独特优势
-      uniqueAdvantages: [
-        `${experience}的丰富实战经验`,
-        `精通${expertise.join('、')}等多个领域`,
-        '擅长将复杂法律问题简单化',
-        '注重实用性和可操作性',
-      ],
-
-      // 内容策略
-      contentStrategy: {
-        frequency: contentPreferences.frequency || 'weekly',
-        platforms: platformSettings.preferredPlatforms || ['微信公众号', '知乎'],
-        focusAreas: expertise,
-        differentiationPoints: ['实战案例', '风险预防', '合规指导'],
-      },
-
-      // 历史表现分析
-      performanceInsights: {
-        totalPosts: previousContent.totalPosts || 0,
-        avgEngagement: previousContent.avgEngagement || 0,
-        topPerformingTopics: previousContent.topPerformingTopics || [],
-        recommendedImprovement: [
-          '增加案例分析类内容',
-          '强化互动性',
-          '优化标题吸引力',
-        ],
-      },
-
-      // 推荐选题方向
-      recommendedTopics: [
-        `${expertise[0]}实务中的常见误区`,
-        `2026年${expertise[0]}新规解读`,
-        `${expertise[0]}风险防范指南`,
-        `${expertise[0]}案例分析系列`,
-      ],
-
-      // 生成时间戳
-      generatedAt: new Date().toISOString(),
-      version: '1.0',
-    };
+    return contentPosition;
   }
 
   /**
