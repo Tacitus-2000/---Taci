@@ -4,6 +4,9 @@
  */
 
 import type { AgentState, AgentStateUpdate } from '../schemas/agentStateSchema';
+import { createAIClient } from '../ai/client';
+import { buildRewritePrompt, REWRITE_SYSTEM_PROMPT } from '../ai/prompts/rewritePrompt';
+import { fixChinesePunctuation } from '../utils/jsonFixer';
 
 /**
  * 文案重写 Agent 类
@@ -127,7 +130,7 @@ export class RewriteAgent {
   }
 
   /**
-   * 重写文案（Mock 实现）
+   * 重写文案（使用 Claude API）
    *
    * @param state - 当前 Agent 状态
    * @param issues - 需要修复的问题列表
@@ -151,76 +154,91 @@ export class RewriteAgent {
     style_note?: string;
   }> {
     const originalScript = state.draftScript!;
-    const industryTemplate = state.industryTemplate as Record<string, unknown>;
-    const complianceRules = (industryTemplate.complianceRules as Record<string, unknown>) || {};
-    const disclaimer = complianceRules.requiredDisclaimer as string;
 
-    // Mock 数据：模拟 AI 重写逻辑
-    // 这里简化处理，实际应该根据具体问题进行针对性修改
+    // 构建 Prompt
+    const prompt = buildRewritePrompt(originalScript, state.reviews);
 
-    let title = originalScript.title || '';
-    let hook = originalScript.hook || '';
-    let body = originalScript.body || '';
-    const cta = originalScript.cta || '';
+    // 调用 Claude API
+    const aiClient = createAIClient();
+    const response = await aiClient.chat(
+      [{ role: 'user', content: prompt }],
+      {
+        system: REWRITE_SYSTEM_PROMPT,
+        maxTokens: 8000  // 增加 token 限制，确保完整响应
+      }
+    );
 
-    // 处理标题过长问题
-    if (issues.some((i) => i.description.includes('标题过长'))) {
-      title = title.substring(0, 28) + '...';
-    }
+    // 解析响应
+    let rewrittenScript: {
+      title: string;
+      hook?: string;
+      body?: string;
+      cta?: string;
+      platform?: string;
+      structure_type?: string;
+      style_note?: string;
+    };
 
-    // 处理缺少免责声明问题
-    let styleNote = originalScript.style_note || '';
-    if (issues.some((i) => i.description.includes('免责声明')) && disclaimer) {
-      styleNote = disclaimer;
-    }
+    try {
+      // 尝试直接解析 JSON
+      rewrittenScript = JSON.parse(response.content);
+    } catch (parseError) {
+      // 尝试提取 ```json 代码块
+      const jsonMatch = response.content.match(/```json\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        const jsonContent = jsonMatch[1].trim();
 
-    // 处理绝对化用语问题
-    if (issues.some((i) => i.description.includes('绝对化用语'))) {
-      body = body
-        .replace(/一定/g, '通常')
-        .replace(/必然/g, '一般情况下')
-        .replace(/保证/g, '力求')
-        .replace(/100%/g, '大多数情况下')
-        .replace(/绝对/g, '往往');
-    }
+        // 修复常见的 JSON 格式问题
+        const fixedJson = fixChinesePunctuation(jsonContent);
 
-    // 处理开头引导语问题
-    if (issues.some((i) => i.description.includes('引导语'))) {
-      hook = `根据我们的执业经验统计，在相关法律领域，许多企业都曾因为忽视某些关键细节而面临法律风险。今天，让我们一起探讨如何有效规避这些常见问题。`;
-    }
+        try {
+          rewrittenScript = JSON.parse(fixedJson);
+        } catch (blockError) {
 
-    // 处理段落过长问题
-    if (issues.some((i) => i.description.includes('段落过长'))) {
-      // 简化处理：在长段落中间添加换行
-      const paragraphs = body.split('\n\n');
-      body = paragraphs
-        .map((p) => {
-          if (p.length > 300) {
-            // 在句号后添加换行
-            return p.replace(/。(?=[^。]{50,})/g, '。\n\n');
+          // 尝试进一步修复 JSON
+          // 1. 检查是否被截断（缺少结束的 } 或 "）
+          let fixedJson2 = fixedJson;
+
+          // 如果 JSON 不完整，尝试补全
+          const openBraces = (fixedJson2.match(/{/g) || []).length;
+          const closeBraces = (fixedJson2.match(/}/g) || []).length;
+
+          if (openBraces > closeBraces) {
+            // 补全缺失的右括号
+            fixedJson2 += '\n'.repeat(openBraces - closeBraces) + '}'.repeat(openBraces - closeBraces);
           }
-          return p;
-        })
-        .join('\n\n');
-    }
 
-    // 处理缺乏结构问题
-    if (issues.some((i) => i.description.includes('结构'))) {
-      // 确保有清晰的标题结构
-      if (!body.includes('##')) {
-        body = body.replace(/一、/g, '\n## 一、').replace(/二、/g, '\n## 二、').replace(/三、/g, '\n## 三、');
+          // 检查最后一个字段是否缺少引号
+          if (!fixedJson2.trim().endsWith('}') && !fixedJson2.trim().endsWith('"')) {
+            fixedJson2 += '"';
+          }
+
+          try {
+            rewrittenScript = JSON.parse(fixedJson2);
+          } catch (fixError) {
+            // 记录详细错误信息用于调试
+            console.error('原始响应长度:', response.content.length);
+            console.error('JSON 内容长度:', jsonContent.length);
+            console.error('JSON 解析失败:', fixError instanceof Error ? fixError.message : '未知错误');
+            throw new Error(`无法解析 AI 响应为 JSON 格式: ${blockError instanceof Error ? blockError.message : '未知错误'}`);
+          }
+        }
+      } else {
+        // 没有找到代码块，记录响应内容
+        console.error('未找到 JSON 代码块，响应长度:', response.content.length);
+        throw new Error('AI 响应中未找到 JSON 格式内容');
       }
     }
 
-    return {
-      title,
-      hook,
-      body,
-      cta,
-      platform: originalScript.platform,
-      structure_type: originalScript.structure_type,
-      style_note: styleNote,
-    };
+    // 验证必需字段
+    const requiredFields = ['title', 'hook', 'body', 'cta'];
+    for (const field of requiredFields) {
+      if (!rewrittenScript[field as keyof typeof rewrittenScript]) {
+        throw new Error(`重写后的文案缺少必需字段: ${field}`);
+      }
+    }
+
+    return rewrittenScript;
   }
 
   /**

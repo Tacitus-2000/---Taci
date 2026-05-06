@@ -14,6 +14,8 @@
     "test:script-agent": "tsx scripts/test-script-agent.ts",
     "test:readability-agent": "tsx scripts/test-readability-agent.ts",
     "test:risk-agent": "tsx scripts/test-risk-agent.ts",
+    "test:rewrite-agent": "tsx scripts/test-rewrite-agent.ts",
+    "test:workflow": "tsx scripts/test-workflow.ts",
     "seed:test": "tsx scripts/seed-test-data.ts",
     "typecheck": "tsc --noEmit"
   },

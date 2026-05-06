@@ -42,8 +42,17 @@ export class ProfileAgent {
       // Mock: 模拟 AI 生成内容定位档案
       const contentPosition = await this.generateContentPosition(state);
       logs.push('[ProfileAgent] 成功生成内容定位档案');
-      logs.push(`[ProfileAgent] 专业领域: ${(contentPosition.professionalFields as string[]).join('、')}`);
-      logs.push(`[ProfileAgent] 目标受众: ${(contentPosition.targetAudience as string[]).join('、')}`);
+
+      // 安全地记录日志
+      const professionalFields = contentPosition?.professionalFields || contentPosition?.professional_fields || contentPosition?.expertise_areas;
+      const targetAudience = contentPosition?.targetAudience || contentPosition?.target_audience;
+
+      if (professionalFields && Array.isArray(professionalFields)) {
+        logs.push(`[ProfileAgent] 专业领域: ${professionalFields.join('、')}`);
+      }
+      if (targetAudience && Array.isArray(targetAudience)) {
+        logs.push(`[ProfileAgent] 目标受众: ${targetAudience.join('、')}`);
+      }
 
       logs.push('[ProfileAgent] 档案生成完成');
 

@@ -6,6 +6,7 @@
 import type { AgentState, AgentStateUpdate } from '../schemas/agentStateSchema';
 import { createAIClient } from '../ai/client';
 import { SCRIPT_SYSTEM_PROMPT, buildScriptPrompt } from '../ai/prompts/scriptPrompt';
+import { fixChinesePunctuation } from '../utils/jsonFixer';
 
 /**
  * 文案生成 Agent 类
@@ -97,16 +98,33 @@ export class ScriptAgent {
 
     // 解析 JSON 响应
     let scriptData: any;
+    let jsonString = response.content;
+
     try {
       // 尝试直接解析
-      scriptData = JSON.parse(response.content);
-    } catch {
+      scriptData = JSON.parse(jsonString);
+    } catch (firstError) {
       // 尝试提取 ```json 代码块
-      const jsonMatch = response.content.match(/```json\s*([\s\S]*?)\s*```/);
+      const jsonMatch = jsonString.match(/```json\s*([\s\S]*?)\s*```/);
       if (jsonMatch) {
-        scriptData = JSON.parse(jsonMatch[1]);
-      } else {
-        throw new Error('无法解析 AI 响应为 JSON 格式');
+        jsonString = jsonMatch[1];
+      }
+
+      try {
+        // 再次尝试解析
+        scriptData = JSON.parse(jsonString);
+      } catch (secondError) {
+        // 使用 JSON 修复工具
+        console.log('[ScriptAgent] JSON 解析失败，尝试修复...');
+        const fixedJson = fixChinesePunctuation(jsonString);
+        try {
+          scriptData = JSON.parse(fixedJson);
+          console.log('[ScriptAgent] JSON 修复成功');
+        } catch (thirdError) {
+          console.error('[ScriptAgent] JSON 修复失败');
+          console.error('原始响应:', response.content.substring(0, 500));
+          throw new Error(`无法解析 AI 响应为 JSON 格式: ${thirdError instanceof Error ? thirdError.message : '未知错误'}`);
+        }
       }
     }
 
