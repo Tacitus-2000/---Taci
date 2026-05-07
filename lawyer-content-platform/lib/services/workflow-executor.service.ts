@@ -86,6 +86,7 @@ export class WorkflowExecutor {
       let state: AgentState = {
         clientId: input.clientId,
         industryId: input.industryId || '',
+        customDirection: input.customDirection, // 存储用户自定义方向
         status: 'running',
         logs: [],
         reviews: [],

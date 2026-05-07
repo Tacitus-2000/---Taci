@@ -136,7 +136,11 @@ export async function POST(request: NextRequest) {
     validateRequired(body.agent_type, 'agent_type');
     validateEnum(body.agent_type, AGENT_TYPES, 'agent_type');
     validateRequired(body.template_name, 'template_name');
-    validateRequired(body.template_body, 'template_body');
+
+    // 至少需要 system_prompt 或 user_prompt_template 之一
+    if (!body.system_prompt && !body.user_prompt_template && !body.template_body) {
+      return apiError('INVALID_REQUEST', 'At least one of system_prompt, user_prompt_template, or template_body is required', 400);
+    }
 
     const supabase = getSupabaseAdmin();
 
@@ -152,9 +156,13 @@ export async function POST(request: NextRequest) {
         industry_id: body.industry_id || null,
         agent_type: body.agent_type,
         template_name: body.template_name,
-        template_body: body.template_body,
+        template_body: body.template_body || body.user_prompt_template || '',
+        system_prompt: body.system_prompt || null,
+        user_prompt_template: body.user_prompt_template || null,
+        description: body.description || null,
         version: body.version || '1.0.0',
         active: body.active ?? true,
+        created_by: body.created_by || 'admin',
       })
       .select()
       .single();
@@ -211,6 +219,9 @@ export async function PUT(request: NextRequest) {
     if (body.agent_type !== undefined) updateData.agent_type = body.agent_type;
     if (body.template_name !== undefined) updateData.template_name = body.template_name;
     if (body.template_body !== undefined) updateData.template_body = body.template_body;
+    if (body.system_prompt !== undefined) updateData.system_prompt = body.system_prompt;
+    if (body.user_prompt_template !== undefined) updateData.user_prompt_template = body.user_prompt_template;
+    if (body.description !== undefined) updateData.description = body.description;
     if (body.version !== undefined) updateData.version = body.version;
     if (body.active !== undefined) updateData.active = body.active;
 

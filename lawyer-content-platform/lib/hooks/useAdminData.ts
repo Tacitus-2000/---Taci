@@ -18,6 +18,8 @@ import type {
   ScriptUpdateRequest,
   PaginationParams,
   AgentRunQueryParams,
+  PromptCreateRequest,
+  PromptUpdateRequest,
 } from '@/types/admin';
 import { useToast } from './useToast';
 
@@ -46,6 +48,10 @@ export const adminQueryKeys = {
     [...adminQueryKeys.all, 'agentRuns', params] as const,
   agentRun: (runId: string) =>
     [...adminQueryKeys.all, 'agentRun', runId] as const,
+  prompts: (params?: PaginationParams) =>
+    [...adminQueryKeys.all, 'prompts', params] as const,
+  prompt: (promptId: string) =>
+    [...adminQueryKeys.all, 'prompt', promptId] as const,
 };
 
 /**
@@ -419,5 +425,91 @@ export function useAgentRun(runId: string) {
     queryKey: adminQueryKeys.agentRun(runId),
     queryFn: () => adminApi.getAgentRun(runId),
     enabled: !!runId,
+  });
+}
+
+/**
+ * ========================================
+ * Prompts Hooks
+ * ========================================
+ */
+
+/**
+ * 获取提示词列表
+ */
+export function usePrompts(params?: PaginationParams) {
+  return useQuery({
+    queryKey: adminQueryKeys.prompts(params),
+    queryFn: () => adminApi.getPrompts(params),
+  });
+}
+
+/**
+ * 获取单个提示词
+ */
+export function usePrompt(promptId: string) {
+  return useQuery({
+    queryKey: adminQueryKeys.prompt(promptId),
+    queryFn: () => adminApi.getPrompt(promptId),
+    enabled: !!promptId,
+  });
+}
+
+/**
+ * 创建提示词
+ */
+export function useCreatePrompt() {
+  const queryClient = useQueryClient();
+  const { success, error } = useToast();
+
+  return useMutation({
+    mutationFn: (data: PromptCreateRequest) => adminApi.createPrompt(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.prompts() });
+      success('提示词创建成功');
+    },
+    onError: (err: Error) => {
+      error('提示词创建失败', err.message);
+    },
+  });
+}
+
+/**
+ * 更新提示词
+ */
+export function useUpdatePrompt(promptId: string) {
+  const queryClient = useQueryClient();
+  const { success, error } = useToast();
+
+  return useMutation({
+    mutationFn: (data: PromptUpdateRequest) =>
+      adminApi.updatePrompt(promptId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.prompts() });
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.prompt(promptId) });
+      success('提示词更新成功');
+    },
+    onError: (err: Error) => {
+      error('提示词更新失败', err.message);
+    },
+  });
+}
+
+/**
+ * 删除提示词
+ */
+export function useDeletePrompt() {
+  const queryClient = useQueryClient();
+  const { success, error } = useToast();
+
+  return useMutation({
+    mutationFn: (promptId: string) => adminApi.deletePrompt(promptId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.prompts() });
+      success('提示词删除成功');
+    },
+    onError: (err: Error) => {
+      error('提示词删除失败', err.message);
+    },
   });
 }

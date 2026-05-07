@@ -169,8 +169,12 @@ export interface PromptTemplate {
   agent_type: PromptTemplateAgentType;
   template_name: string;
   template_body: string;
+  system_prompt: string | null;
+  user_prompt_template: string | null;
+  description: string | null;
   version: string;
   active: boolean;
+  created_by: string;
   created_at: string;
   updated_at: string;
 }

@@ -30,7 +30,8 @@ export const TOPIC_SYSTEM_PROMPT = `你是一位专业的内容选题策划专�
  */
 export function buildTopicPrompt(
   clientProfile: Record<string, any>,
-  industryTemplate: Record<string, any>
+  industryTemplate: Record<string, any>,
+  customDirection?: string
 ): string {
   const expertise = (clientProfile.expertise as string[]) || [];
   const yearsOfExperience = clientProfile.yearsOfExperience || clientProfile.experience || '未知';
@@ -60,7 +61,15 @@ ${contentPosition ? `
 - 内容风格：${contentPosition.tone_style || '未指定'}
 ` : '（暂无内容定位信息）'}
 
-## 行业模板
+${customDirection ? `## 用户自定义方向
+
+**重要：用户明确指定了内容方向，所有选题必须围绕这个方向展开**
+
+用户需求：${customDirection}
+
+请确保生成的选题直接回应用户的具体需求，而不是泛泛而谈。
+
+` : ''}## 行业模板
 
 **行业**：${industryTemplate.industry}
 **常见痛点**：

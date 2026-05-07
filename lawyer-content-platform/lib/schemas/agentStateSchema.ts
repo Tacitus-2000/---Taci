@@ -9,6 +9,9 @@ export const agentStateSchema = z.object({
   clientId: z.string().uuid(),
   industryId: z.string().uuid(),
 
+  // 用户自定义方向（可选）
+  customDirection: z.string().optional(),
+
   // 行业模板和客户档案
   industryTemplate: z.record(z.string(), z.unknown()).optional(),
   clientProfile: z.record(z.string(), z.unknown()).optional(),

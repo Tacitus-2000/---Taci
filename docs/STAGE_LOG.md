@@ -314,4 +314,172 @@ body: JSON.stringify({
 
 ---
 
+## 阶段 12: customDirection 传递逻辑修复 (已完成)
+
+**开始时间**: 2026-05-07  
+**完成时间**: 2026-05-07  
+**版本**: V0.23  
+**负责人**: AI Agent
+
+### 目标
+修复用户自定义方向（customDirection）未传递给 TopicAgent 的问题，确保生成的内容符合用户需求。
+
+### 完成工作
+
+#### 第三轮环境变量调试
+
+1. **问题诊断**
+   - ✅ 自动测试脚本通过，但网页端生成内容时出现 401 认证错误
+   - ✅ 验证 `.env.local` 文件内容正确
+   - ✅ 发现 PowerShell 会话环境变量覆盖了 `.env.local` 配置
+
+2. **根本原因确认**
+   - Next.js 环境变量优先级：`process.env`（系统环境变量）> `.env.local` 文件
+   - PowerShell 会话中的 `ANTHROPIC_BASE_URL=https://www.fucheers.top` 覆盖了正确配置
+   - 用户未手动修改 `.env.local`，但系统环境变量持续存在
+
+3. **修复实施**
+   - ✅ 在 PowerShell 中执行 `$env:ANTHROPIC_BASE_URL = "https://www.vibecd.cc"`
+   - ✅ 重启开发服务器
+   - ✅ 验证环境变量正确加载
+
+#### customDirection 传递逻辑修复
+
+1. **问题诊断**
+   - ✅ 工作流完整执行（耗时 3.2 分钟）
+   - ✅ 用户输入："被公司以不合理调度调走，被迫离职，如何获得赔偿"
+   - ✅ 生成标题："500个案例血泪教训：这3个字，让企业损失上亿"
+   - ❌ 内容完全不符合用户需求（针对企业主而非劳动者）
+
+2. **根本原因确认**
+   - `customDirection` 仅记录在 `state.logs` 中
+   - TopicAgent 生成选题时无法获取用户的具体需求
+   - Prompt 中缺少用户自定义方向的强调
+
+3. **修复实施**
+   - ✅ 更新 `lib/schemas/agentStateSchema.ts`
+     - 添加 `customDirection: z.string().optional()` 字段
+   - ✅ 更新 `lib/services/workflow-executor.service.ts`
+     - 在初始化 state 时添加 `customDirection: input.customDirection`
+   - ✅ 更新 `lib/ai/prompts/topicPrompt.ts`
+     - 函数签名添加 `customDirection?: string` 参数
+     - Prompt 中添加"用户自定义方向"部分
+     - 强调："所有选题必须围绕这个方向展开"
+   - ✅ 更新 `lib/agents/topicAgent.ts`
+     - 调用 `buildTopicPrompt` 时传递 `state.customDirection`
+
+### 变更文件
+
+```
+lawyer-content-platform/
+├── lib/schemas/agentStateSchema.ts (添加 customDirection 字段)
+├── lib/services/workflow-executor.service.ts (传递 customDirection 到 state)
+├── lib/ai/prompts/topicPrompt.ts (在 Prompt 中使用 customDirection)
+├── lib/agents/topicAgent.ts (传递 customDirection 给 buildTopicPrompt)
+└── scripts/force-fix-env.js (新建 - 环境变量强制修复脚本)
+```
+
+### 验证结果
+
+- ✅ TypeScript 编译通过
+- ✅ 代码逻辑正确
+- ⏳ 网页端功能测试 - 待用户验证
+
+### 调试过程总结
+
+#### 环境变量问题（第三轮）
+
+**Phase 1: Root Cause Investigation**
+- 收集证据：`.env.local` 文件内容正确，但运行时环境变量错误
+- 创建诊断工具：`force-fix-env.js` 脚本验证文件内容
+- 发现根本原因：PowerShell 会话环境变量覆盖文件配置
+
+**Phase 2: Pattern Analysis**
+- Next.js 环境变量加载优先级分析
+- 识别系统环境变量的优先级高于 `.env.local`
+
+**Phase 3: Solution**
+- 在 PowerShell 中设置正确的环境变量
+- 提供永久修复方案：通过 Windows 系统设置清除系统级环境变量
+
+#### customDirection 传递问题
+
+**Phase 1: Root Cause Investigation**
+- 工作流完整执行，但生成内容不符合需求
+- 检查 TopicAgent 和 topicPrompt 实现
+- 发现 customDirection 未传递给 TopicAgent
+
+**Phase 2: Data Flow Analysis**
+- API 输入 → WorkflowExecutor → AgentState → TopicAgent → buildTopicPrompt
+- 发现断点：customDirection 仅记录在 logs 中，未存入 state
+
+**Phase 3: Implementation**
+- 在 AgentState Schema 中添加 customDirection 字段
+- 修改 WorkflowExecutor 传递 customDirection
+- 更新 topicPrompt 在 Prompt 中强调用户需求
+- 修改 TopicAgent 传递参数
+
+**Phase 4: Verification**
+- TypeScript 编译通过
+- 代码逻辑验证正确
+
+### 关键教训
+
+1. **环境变量优先级问题**
+   - Next.js 环境变量优先级：`process.env` > `.env.local`
+   - PowerShell 会话环境变量会持续存在，覆盖文件配置
+   - 需要通过系统设置永久清除错误的环境变量
+
+2. **用户输入必须传递到 AI Prompt**
+   - 不要仅在 logs 中记录重要数据
+   - 用户自定义方向应该是选题生成的最高优先级输入
+   - 在 Prompt 中明确强调用户需求的重要性
+
+3. **数据流完整性验证**
+   - 验证数据从 API 输入到 AI Prompt 的完整传递链路
+   - 不要假设数据会自动传递
+   - 使用 TypeScript 类型系统确保数据结构完整
+
+### 技术细节
+
+**AgentState Schema 更新**：
+```typescript
+export const agentStateSchema = z.object({
+  clientId: z.string().uuid(),
+  industryId: z.string().uuid(),
+  customDirection: z.string().optional(), // 新增字段
+  // ...
+});
+```
+
+**TopicPrompt 更新**：
+```typescript
+${customDirection ? `## 用户自定义方向
+
+**重要：用户明确指定了内容方向，所有选题必须围绕这个方向展开**
+
+用户需求：${customDirection}
+
+请确保生成的选题直接回应用户的具体需求，而不是泛泛而谈。
+
+` : ''}
+```
+
+### 遗留问题
+
+1. **环境变量永久修复**
+   - 需要通过 Windows 系统设置清除系统级环境变量
+   - 路径：Win + R → `sysdm.cpl` → 高级 → 环境变量
+
+2. **网页端功能测试**
+   - 待用户在浏览器中验证生成内容是否符合 customDirection
+
+### 下一步
+
+1. 用户验证网页端生成功能
+2. 如果测试通过，提交代码并创建 V0.23 版本标签
+3. 进入阶段 13: 生产环境部署准备
+
+---
+
 **文档维护**: 由 AI 在每个阶段完成后追加记录

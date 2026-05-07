@@ -116,6 +116,8 @@ export class DataAgent {
             long: '2000-3000字',
           },
         },
+        createdAt: data.created_at || new Date().toISOString(),
+        updatedAt: data.updated_at || new Date().toISOString(),
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '未知错误';
@@ -130,6 +132,7 @@ export class DataAgent {
    * @returns 默认行业模板数据
    */
   private getDefaultIndustryTemplate(industryId: string): Record<string, unknown> {
+    const now = new Date().toISOString();
     return {
       id: industryId,
       industry: '默认行业',
@@ -146,6 +149,8 @@ export class DataAgent {
           long: '2000-3000字',
         },
       },
+      createdAt: now,
+      updatedAt: now,
     };
   }
 
@@ -216,22 +221,22 @@ export class DataAgent {
     industryTemplate: Record<string, unknown>,
     clientProfile: Record<string, unknown>
   ): void {
-    // 验证行业模板
+    // 验证行业模板（使用 agentStateSchema.IndustryTemplate 字段）
     if (!industryTemplate || typeof industryTemplate !== 'object') {
       throw new Error('行业模板数据无效');
     }
 
-    if (!industryTemplate.templateName && !industryTemplate.name) {
-      throw new Error('行业模板缺少名称字段');
+    if (!industryTemplate.industry) {
+      throw new Error('行业模板缺少 industry 字段');
     }
 
-    // 验证客户档案
+    // 验证客户档案（使用 agentStateSchema.ClientProfile 字段）
     if (!clientProfile || typeof clientProfile !== 'object') {
       throw new Error('客户档案数据无效');
     }
 
-    if (!clientProfile.clientName) {
-      throw new Error('客户档案缺少 clientName 字段');
+    if (!clientProfile.name) {
+      throw new Error('客户档案缺少 name 字段');
     }
 
     if (!clientProfile.clientId) {
@@ -241,16 +246,16 @@ export class DataAgent {
     // 验证关键业务字段
     const warnings: string[] = [];
 
-    if (!clientProfile.targetCustomer) {
-      warnings.push('客户档案缺少目标客户信息');
+    if (!clientProfile.targetAudience) {
+      warnings.push('客户档案缺少目标受众信息 (targetAudience)');
     }
 
-    if (!clientProfile.toneStyle) {
-      warnings.push('客户档案缺少语气风格信息');
+    if (!clientProfile.contentPreferences) {
+      warnings.push('客户档案缺少内容偏好信息 (contentPreferences)');
     }
 
-    if (!clientProfile.conversionGoal) {
-      warnings.push('客户档案缺少转化目标信息');
+    if (!clientProfile.expertise || (Array.isArray(clientProfile.expertise) && clientProfile.expertise.length === 0)) {
+      warnings.push('客户档案缺少专业领域信息 (expertise)');
     }
 
     // 输出警告（不阻止执行）

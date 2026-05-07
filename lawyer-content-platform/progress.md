@@ -457,7 +457,140 @@
 
 ---
 
-**最后更新**: 2026-05-07 12:00
-**阶段 10 状态**: ✅ 完成
-**阶段 11 状态**: ⏳ 准备开始
-**端到端测试**: ⏳ 进行中
+## 会话 16: 2026-05-07 12:26
+
+### 完成的工作
+1. ✅ 提交 V0.19 - TypeScript 类型错误修复
+   - 修复 DataAgent 数据格式转换
+   - 修复端到端测试脚本
+   - 更新文档
+
+2. ✅ 修复 DataAgent 验证逻辑和默认模板
+   - 问题: 验证逻辑使用旧字段名（templateName, clientName），但数据使用新字段名（industry, name）
+   - 问题: 默认模板缺少 createdAt 和 updatedAt 字段
+   - 解决: 
+     - 更新 validateData() 方法使用 agentStateSchema 字段名
+     - 为 getDefaultIndustryTemplate() 添加时间戳字段
+     - 为 loadIndustryTemplate() 添加时间戳字段
+   - 验证: TypeScript 编译通过
+
+3. ✅ 添加脚本持久化功能
+   - 问题: WorkflowExecutor 只返回 scriptData，但没有保存到数据库
+   - 问题: scripts 表结构与代码不匹配（没有 agent_run_id, hook, cta 列）
+   - 解决:
+     - 在 WorkflowService 添加 createScript() 方法
+     - 匹配实际的 scripts 表结构（client_id, topic_id, title, body）
+     - 将 hook, body, cta 组合成完整的 body 字段
+     - 在 WorkflowExecutor 成功完成时调用 createScript()
+   - 验证: TypeScript 编译通过
+
+4. ✅ 端到端工作流测试
+   - 第一次测试: 失败 - "行业模板缺少名称字段"
+   - 第二次测试: 成功但保存脚本失败 - "找不到 agent_run_id 列"
+   - 第三次测试: 待运行
+
+### 技术债务
+1. **字段命名不一致问题**
+   - 数据库 schema: snake_case (client_name, niche_direction)
+   - agentStateSchema: camelCase (name, expertise, targetAudience)
+   - 当前方案: DataAgent 在运行时转换
+   - 长期方案: 考虑统一命名或使用 DTO 模式
+
+2. **Scripts 表结构简化**
+   - 实际表结构: client_id, topic_id, title, body, usage_advice, status
+   - 缺少: agent_run_id, hook, cta, platform, structure_type 等字段
+   - 当前方案: 将 hook, body, cta 组合成一个 body 字段
+   - 长期方案: 考虑扩展表结构以支持更细粒度的内容管理
+
+### 下一步行动
+1. 运行第三次端到端测试验证脚本保存
+2. 提交所有修复（V0.20）
+3. 更新 task_plan.md 和 docs/NEXT_CONTEXT.md
+4. 准备切换到新窗口
+
+---
+
+## 会话 17: 2026-05-07 22:58 - 23:30
+
+### 完成的工作
+1. ✅ 创建 V0.3 开发任务计划
+   - 文件: `V0.3_TASK_PLAN.md`
+   - 包含 7 个阶段的详细规划（阶段 13-19）
+   - 预计 20-25 小时完成
+
+2. ✅ 完成阶段 14: 提示词管理页面
+   - 扩展 `prompt_templates` 表结构
+     - 添加 system_prompt, user_prompt_template, description, created_by 字段
+     - 创建迁移文件 `supabase/migrations/20260507_alter_prompt_templates.sql`
+   - 更新 TypeScript 类型定义
+     - 修改 `types/database.ts` 中的 PromptTemplate 接口
+     - 更新 `types/admin.ts` 中的 PromptCreateRequest 和 PromptUpdateRequest
+   - 实现后端 API
+     - 更新 `app/api/admin/prompts/route.ts` 支持新字段
+     - 创建 `app/api/admin/prompts/[id]/route.ts` 处理单个资源
+     - 创建 `lib/services/prompt.service.ts` 服务层
+   - 实现前端管理页面
+     - 完全重写 `app/admin/prompts/page.tsx`
+     - 按 Agent 类型筛选显示
+     - 支持创建、编辑、删除提示词
+     - 显示激活状态和版本号
+     - 支持系统提示词和用户提示词模板分离编辑
+
+3. ✅ 修复 TypeScript 类型错误
+   - 修复 Next.js 15 的 params 类型问题（params 现在是 Promise）
+   - 移除未使用的 Tabs 组件导入
+   - 修复 admin-client 导入问题（使用 getAdminSupabaseClient）
+   - TypeScript 编译通过
+
+### 技术细节
+
+**数据库扩展**:
+```sql
+ALTER TABLE prompt_templates
+ADD COLUMN IF NOT EXISTS system_prompt TEXT,
+ADD COLUMN IF NOT EXISTS user_prompt_template TEXT,
+ADD COLUMN IF NOT EXISTS description TEXT,
+ADD COLUMN IF NOT EXISTS created_by TEXT DEFAULT 'system';
+```
+
+**新增字段说明**:
+- `system_prompt`: 系统提示词，定义 Agent 的角色和行为
+- `user_prompt_template`: 用户提示词模板，包含变量占位符
+- `description`: 提示词描述，说明用途和使用场景
+- `created_by`: 创建者标识（system 或 admin）
+
+**前端功能**:
+- 按 Agent 类型下拉筛选（8 种类型）
+- 创建/编辑对话框支持大文本输入（Textarea）
+- 激活状态徽章显示（绿色激活/灰色未激活）
+- 版本号显示
+- 删除确认对话框
+
+### 创建的文件
+1. `V0.3_TASK_PLAN.md` - V0.3 开发任务计划
+2. `supabase/migrations/20260507_alter_prompt_templates.sql` - 数据库迁移
+3. `lib/services/prompt.service.ts` - 提示词服务层
+4. `app/api/admin/prompts/[id]/route.ts` - 单个提示词 API
+
+### 修改的文件
+1. `types/database.ts` - 更新 PromptTemplate 接口
+2. `types/admin.ts` - 更新 PromptCreateRequest 和 PromptUpdateRequest
+3. `app/api/admin/prompts/route.ts` - 支持新字段
+4. `app/admin/prompts/page.tsx` - 完全重写管理页面
+
+### 验证结果
+- ✅ TypeScript 编译通过
+- ⏳ 数据库迁移待执行
+- ⏳ 前端页面待浏览器测试
+
+### 下一步行动
+1. 执行数据库迁移
+2. 在浏览器中测试提示词管理页面
+3. 开始阶段 15: 提示词优化（文案生成效果提升）
+
+---
+
+**最后更新**: 2026-05-07 23:30
+**阶段 14 状态**: ✅ 完成
+**当前任务**: 准备开始阶段 15
+**待提交**: V0.3 相关文件

@@ -76,7 +76,7 @@ export class TopicAgent {
     const industryTemplate = state.industryTemplate as Record<string, any>;
 
     // 构建 Prompt
-    const prompt = buildTopicPrompt(clientProfile, industryTemplate);
+    const prompt = buildTopicPrompt(clientProfile, industryTemplate, state.customDirection);
 
     // 调用 AI 客户端
     const aiClient = createAIClient();

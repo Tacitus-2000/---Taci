@@ -25,6 +25,10 @@ import type {
   AgentRunListResponse,
   AgentRunQueryParams,
   PaginationParams,
+  PromptResponse,
+  PromptListResponse,
+  PromptCreateRequest,
+  PromptUpdateRequest,
 } from '@/types/admin';
 
 /**
@@ -281,6 +285,57 @@ export class AdminApi {
    */
   async getAgentRun(runId: string): Promise<AgentRunResponse> {
     return apiClient.get<AgentRunResponse>(`/admin/agent-runs/${runId}`);
+  }
+
+  /**
+   * ========================================
+   * Prompts API
+   * ========================================
+   */
+
+  /**
+   * 获取提示词列表
+   */
+  async getPrompts(params?: PaginationParams): Promise<PromptListResponse> {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+    const query = queryParams.toString();
+    const endpoint = `/admin/prompts${query ? `?${query}` : ''}`;
+
+    return apiClient.get<PromptListResponse>(endpoint);
+  }
+
+  /**
+   * 获取单个提示词
+   */
+  async getPrompt(id: string): Promise<PromptResponse> {
+    return apiClient.get<PromptResponse>(`/admin/prompts/${id}`);
+  }
+
+  /**
+   * 创建提示词
+   */
+  async createPrompt(data: PromptCreateRequest): Promise<PromptResponse> {
+    return apiClient.post<PromptResponse>('/admin/prompts', data);
+  }
+
+  /**
+   * 更新提示词
+   */
+  async updatePrompt(
+    id: string,
+    data: PromptUpdateRequest
+  ): Promise<PromptResponse> {
+    return apiClient.put<PromptResponse>(`/admin/prompts/${id}`, data);
+  }
+
+  /**
+   * 删除提示词
+   */
+  async deletePrompt(id: string): Promise<void> {
+    return apiClient.delete<void>(`/admin/prompts/${id}`);
   }
 }
 

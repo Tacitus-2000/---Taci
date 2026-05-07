@@ -198,9 +198,13 @@ export interface PromptCreateRequest {
     | 'risk_review'
     | 'rewrite';
   template_name: string;
-  template_body: string;
+  template_body?: string;
+  system_prompt?: string | null;
+  user_prompt_template?: string | null;
+  description?: string | null;
   version?: string;
   active?: boolean;
+  created_by?: string;
 }
 
 export interface PromptUpdateRequest {
@@ -216,6 +220,9 @@ export interface PromptUpdateRequest {
     | 'rewrite';
   template_name?: string;
   template_body?: string;
+  system_prompt?: string | null;
+  user_prompt_template?: string | null;
+  description?: string | null;
   version?: string;
   active?: boolean;
 }

@@ -1,8 +1,8 @@
 # 项目状态文档
 
 **最后更新时间**: 2026-05-07  
-**当前版本**: V0.22  
-**当前阶段**: 阶段 11 完成，API 认证问题彻底修复  
+**当前版本**: V0.23  
+**当前阶段**: 阶段 12 完成，customDirection 传递逻辑修复  
 **项目状态**: 🟢 所有功能正常运行
 
 ---
@@ -61,26 +61,36 @@
 - 集成 SSE (Server-Sent Events) 流式更新
 - 显示工作流各阶段状态和结果
 
-#### ✅ 阶段 11: API 认证问题修复 (V0.22)
+#### ✅ 阶段 11: API 认证问题修复 (V0.21-V0.22)
 - 诊断并彻底修复 API 认证失败问题（两轮调试）
 - 第一轮（V0.21）：修复环境变量缓存问题
 - 第二轮（V0.22）：移除 Anthropic SDK，使用原生 fetch API
 - 根本原因：SDK 的 User-Agent header 与中转 API 不兼容
 - 端到端测试通过（188 秒），脚本成功保存到数据库
 
-### 当前状态 (V0.22)
+#### ✅ 阶段 12: customDirection 传递逻辑修复 (V0.23)
+- 修复环境变量缓存问题（第三轮）
+  - 根本原因：PowerShell 会话环境变量覆盖 `.env.local` 配置
+  - 解决方案：在 PowerShell 中设置正确的环境变量
+- 修复 customDirection 未传递给 TopicAgent 的问题
+  - 问题：用户自定义方向未传递给 TopicAgent，导致生成内容不符合需求
+  - 修改文件：agentStateSchema.ts, workflow-executor.service.ts, topicPrompt.ts, topicAgent.ts
+  - 验证：TypeScript 编译通过
+
+### 当前状态 (V0.23)
 
 **最新完成**:
-- ✅ API 认证问题彻底修复（阶段 11）
-- ✅ 使用原生 fetch API 替代 Anthropic SDK
-- ✅ 端到端工作流测试通过（6 步骤，188 秒）
-- ✅ 脚本成功保存到数据库（验证通过）
+- ✅ customDirection 传递逻辑修复（阶段 12）
+- ✅ 环境变量优先级问题诊断和解决
+- ✅ AgentState Schema 添加 customDirection 字段
+- ✅ TopicPrompt 支持用户自定义方向
 - ✅ TypeScript 编译验证通过
-- ✅ 完全兼容中转 API
+- ✅ 完整传递链路：API 输入 → WorkflowExecutor → TopicAgent → AI Prompt
 
 **已知问题**:
 - ⚠️ TopicAgent 间歇性 JSON 解析失败（已缓解但未根治）
 - 📝 选题不持久化（待实现）
+- ⚠️ 环境变量优先级：系统环境变量会覆盖 .env.local 配置
 
 ---
 
