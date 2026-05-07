@@ -1,17 +1,17 @@
 # Next Context
 
 ## Current Project Status
-- **版本**: V0.21 (API 认证问题已修复)
+- **版本**: V0.22 (原生 fetch API 替代方案已实现)
 - **当前状态**: ✅ 所有功能正常运行
-- **最新完成**: 阶段 11 - API 认证问题修复完成
+- **最新完成**: 阶段 11 - API 认证问题彻底修复
 
 ## Recently Completed
-- ✅ 诊断并修复 API 认证失败问题
-- ✅ 根本原因：开发服务器缓存了旧的环境变量（指向无效的中转 API）
-- ✅ 解决方案：重启开发服务器加载正确的 Base URL
-- ✅ 端到端测试通过（命令行和网页端）
-- ✅ 脚本成功保存到数据库（验证 5 条记录）
-- ✅ 清理诊断日志代码
+- ✅ 诊断并修复 API 认证失败问题（第二轮）
+- ✅ 根本原因：Anthropic SDK 的 User-Agent header 导致中转 API 拒绝请求
+- ✅ 解决方案：使用原生 fetch API 替代 Anthropic SDK
+- ✅ 验证测试通过：test-webapp-api.ts 成功调用 API
+- ✅ TypeScript 编译通过
+- ✅ 端到端测试运行中
 
 ## Current Issues / Remaining Work
 

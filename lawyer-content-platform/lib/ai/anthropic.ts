@@ -33,9 +33,6 @@ export class AnthropicAIClient implements AIClient {
     this.client = new Anthropic({
       apiKey,
       baseURL,
-      defaultHeaders: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
     });
 
     this.model = config?.model || process.env.LLM_MODEL || 'claude-3-5-sonnet-20241022';
@@ -54,29 +51,47 @@ export class AnthropicAIClient implements AIClient {
       // 提取 system 消息
       const systemMessage = messages.find(m => m.role === 'system')?.content;
 
-      // 调用 Claude API
-      const response = await this.client.messages.create({
-        model: this.model,
-        max_tokens: options?.maxTokens || this.defaultMaxTokens,
-        temperature: options?.temperature || this.defaultTemperature,
-        system: systemMessage,
-        messages: anthropicMessages,
+      // 使用原生 fetch 替代 SDK（兼容中转 API）
+      const apiKey = process.env.ANTHROPIC_API_KEY;
+      const baseURL = process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com';
+
+      const response = await fetch(`${baseURL}/v1/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey!,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: this.model,
+          max_tokens: options?.maxTokens || this.defaultMaxTokens,
+          temperature: options?.temperature || this.defaultTemperature,
+          system: systemMessage,
+          messages: anthropicMessages,
+        }),
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`${response.status} ${errorText}`);
+      }
+
+      const data = await response.json();
+
       // 提取文本内容
-      const content = response.content
-        .filter(block => block.type === 'text')
-        .map(block => (block as { type: 'text'; text: string }).text)
+      const content = data.content
+        .filter((block: any) => block.type === 'text')
+        .map((block: any) => block.text)
         .join('\n');
 
       return {
         content,
         usage: {
-          promptTokens: response.usage.input_tokens,
-          completionTokens: response.usage.output_tokens,
-          totalTokens: response.usage.input_tokens + response.usage.output_tokens,
+          promptTokens: data.usage.input_tokens,
+          completionTokens: data.usage.output_tokens,
+          totalTokens: data.usage.input_tokens + data.usage.output_tokens,
         },
-        model: response.model,
+        model: data.model,
       };
     } catch (error) {
       console.error('Anthropic API error:', error);
