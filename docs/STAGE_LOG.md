@@ -136,17 +136,19 @@ lawyer-content-platform/
 
 ---
 
-## 阶段 11: API 认证问题调试 (进行中)
+## 阶段 11: API 认证问题修复 (已完成)
 
 **开始时间**: 2026-05-07  
 **完成时间**: 2026-05-07  
-**版本**: V0.21  
+**版本**: V0.22  
 **负责人**: AI Agent
 
 ### 目标
 解决网页应用 API 认证失败问题，确保前端可以正常调用 Claude API。
 
 ### 完成工作
+
+#### 第一轮调试（V0.21）
 
 1. **问题诊断**
    - ✅ 创建调试端点 `/api/debug/env` 验证环境变量
@@ -161,14 +163,36 @@ lawyer-content-platform/
 3. **修复实施**
    - ✅ 确认 `.env.local` 配置正确
    - ✅ 重启开发服务器加载新环境变量
-   - ✅ 验证 API 调用成功
+   - ✅ 验证环境变量更新成功
 
-4. **验证测试**
+4. **结果**
+   - 环境变量正确加载，但仍返回 401/403 错误
+   - 进入第二轮调试
+
+#### 第二轮调试（V0.22）
+
+1. **深入分析**
+   - ✅ 对比测试脚本（原生 fetch）和应用代码（Anthropic SDK）
+   - ✅ 发现 SDK 添加了自定义 User-Agent header
+   - ✅ 移除 User-Agent 后仍失败（403 错误）
+   - ✅ 确认 SDK 本身与中转 API 不兼容
+
+2. **最终解决方案**
+   - ✅ 使用原生 fetch API 完全替代 Anthropic SDK
+   - ✅ 手动构造 Anthropic API 请求格式
+   - ✅ 使用 `x-api-key` header 而非 `Authorization`
+   - ✅ 保持相同的接口签名和错误处理
+
+3. **验证测试**
    - ✅ 创建 `test-webapp-api.ts` 测试脚本
-   - ✅ 运行端到端测试验证修复
-   - ✅ 数据库验证脚本保存成功（5 条记录）
+   - ✅ 网页端 API 调用成功
+   - ✅ TypeScript 编译通过
+   - ✅ 端到端测试通过（总耗时 188 秒）
+   - ✅ 脚本成功保存到数据库
+     - 脚本 ID: 8746265e-f6fd-4a6d-8234-834ea406fe11
+     - 标题: 公司辞退员工容易忽视的5个程序问题,HR实务参考
 
-5. **代码清理**
+4. **代码清理**
    - ✅ 移除 `lib/ai/anthropic.ts` 中的诊断日志
    - ✅ 移除 `app/api/client/generate/route.ts` 中的诊断日志
    - ✅ 保留调试端点供未来使用
@@ -177,10 +201,11 @@ lawyer-content-platform/
 
 ```
 lawyer-content-platform/
-├── lib/ai/anthropic.ts (添加并移除诊断日志)
+├── lib/ai/anthropic.ts (完全重写为原生 fetch 实现)
 ├── app/api/client/generate/route.ts (添加并移除诊断日志)
 ├── app/api/debug/env/route.ts (新建 - 环境变量调试端点)
 ├── scripts/test-webapp-api.ts (新建 - 网页端 API 测试)
+├── scripts/test-api-universal.ts (新建 - 通用 API 测试)
 └── scripts/fix-env-base-url.sh (新建 - 环境变量修复脚本)
 ```
 
@@ -188,13 +213,14 @@ lawyer-content-platform/
 
 - ✅ 调试端点验证环境变量正确加载
 - ✅ 网页端 API 测试通过
-- ✅ 端到端测试通过（总耗时 266 秒）
+- ✅ TypeScript 编译通过
+- ✅ 端到端测试通过（总耗时 188 秒）
 - ✅ 脚本成功保存到数据库
-  - 最新脚本 ID: 82908d9d-7e5b-4e76-8c64-7e83296bc27c
-  - 标题: 公司辞退员工容易忽视的5个程序问题,HR实务参考
-  - 总共 5 条脚本记录
+- 🔄 网页端工作流 - 待用户验证
 
 ### 调试过程总结
+
+#### 第一轮：环境变量问题
 
 **Phase 1: Root Cause Investigation**
 - 收集证据：命令行测试成功，网页应用失败
@@ -207,12 +233,34 @@ lawyer-content-platform/
 
 **Phase 3: Hypothesis and Testing**
 - 假设：开发服务器需要重启才能加载新环境变量
-- 验证：重启后环境变量更新，API 调用成功
+- 验证：重启后环境变量更新
 
 **Phase 4: Implementation**
 - 重启开发服务器
-- 运行测试验证修复
-- 清理诊断代码
+- 验证环境变量正确，但问题仍存在
+
+#### 第二轮：SDK 兼容性问题
+
+**Phase 1: Root Cause Investigation**
+- 环境变量已正确，但仍返回 401/403
+- 对比测试脚本（原生 fetch）和应用代码（Anthropic SDK）
+- 发现 SDK 添加了自定义 User-Agent header
+
+**Phase 2: Pattern Analysis**
+- 测试脚本：原生 fetch，无 User-Agent → 成功
+- 应用代码：Anthropic SDK，有 User-Agent → 失败
+- 移除 User-Agent：仍然失败（403）
+- 结论：SDK 本身与中转 API 不兼容
+
+**Phase 3: Hypothesis and Testing**
+- 假设：使用原生 fetch 替代 SDK 可以解决问题
+- 验证：实现原生 fetch，测试成功
+
+**Phase 4: Implementation**
+- 重写 `lib/ai/anthropic.ts` 使用原生 fetch
+- 保持相同的接口签名
+- 运行端到端测试验证修复
+- 所有测试通过
 
 ### 关键教训
 
@@ -224,10 +272,37 @@ lawyer-content-platform/
    - 需要重启才能加载 `.env.local` 的更改
    - 服务器会缓存启动时的环境变量
 
-3. **Systematic Debugging 的价值**
+3. **中转 API 与 SDK 的兼容性问题**
+   - 中转 API 可能对 SDK 的请求头敏感
+   - 原生 fetch 提供更好的控制和兼容性
+   - 不要假设官方 SDK 一定能与中转 API 兼容
+
+4. **Systematic Debugging 的价值**
    - 遵循系统化调试流程避免猜测
    - 添加诊断工具收集证据
    - 验证假设后再实施修复
+   - 当第一次修复失败时，重新进入调试循环
+
+### 技术细节
+
+**原生 fetch 实现要点**：
+```typescript
+// 使用 x-api-key header 而非 Authorization Bearer
+headers: {
+  'Content-Type': 'application/json',
+  'x-api-key': apiKey,
+  'anthropic-version': '2023-06-01',
+}
+
+// 请求体格式与 Anthropic SDK 保持一致
+body: JSON.stringify({
+  model: this.model,
+  max_tokens: options?.maxTokens || 4096,
+  temperature: options?.temperature || 0.7,
+  system: systemMessage,
+  messages: anthropicMessages,
+})
+```
 
 ### 遗留问题
 
@@ -236,60 +311,6 @@ lawyer-content-platform/
 ### 下一步
 
 进入阶段 12: 生产环境部署准备。
-
----
-
-## 阶段 11: API 认证问题调试 (进行中)
-
-**开始时间**: 2026-05-07  
-**版本**: V0.20-BETA  
-**负责人**: 待分配
-
-### 目标
-解决网页应用 API 认证失败问题，确保前端可以正常调用 Claude API。
-
-### 当前进展
-
-1. **问题确认**
-   - ✅ 测试脚本验证 API Key 有效
-   - ✅ 环境变量配置正确
-   - ✅ 服务器已重启
-   - ❌ 网页应用仍返回 401 错误
-
-2. **创建诊断工具**
-   - ✅ 创建 `test-api-universal.ts` 通用测试脚本
-   - ✅ 支持 Anthropic、OpenAI、DeepSeek 格式
-   - ✅ 使用原生 fetch，不依赖 SDK
-
-3. **问题分析**
-   - 测试脚本使用原生 fetch（成功）
-   - 应用代码使用 Anthropic SDK（失败）
-   - 可能是 SDK 请求格式与中转 API 不兼容
-
-### 待完成工作
-
-- [ ] 在 `lib/ai/anthropic.ts` 添加详细日志
-- [ ] 对比测试脚本和 SDK 的 HTTP 请求差异
-- [ ] 尝试使用原生 fetch 替代 Anthropic SDK
-- [ ] 验证修复后的网页端工作流
-
-### 变更文件
-
-```
-lawyer-content-platform/
-├── scripts/test-api-universal.ts (新建)
-├── scripts/test-api-key.ts (新建，已废弃)
-└── CLAUDE.md (用户维护，记录当前问题)
-```
-
-### 验证结果
-
-- ✅ API Key 测试脚本通过
-- ❌ 网页端工作流仍失败
-
-### 下一步
-
-继续调试 API 认证问题，重点关注 Anthropic SDK 和原生 fetch 的请求差异。
 
 ---
 
