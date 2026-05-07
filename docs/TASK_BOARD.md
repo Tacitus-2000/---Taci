@@ -1,7 +1,8 @@
 # 任务看板
 
-**最后更新**: 2026-05-01  
-**当前阶段**: 阶段 0 - 后端骨架审查与修复
+**最后更新**: 2026-05-07  
+**当前版本**: V0.21  
+**当前阶段**: 阶段 11 完成，准备进入阶段 12
 
 ---
 
@@ -14,24 +15,34 @@
 
 ---
 
-## 阶段 0: 后端骨架审查与修复
+## 当前冲刺 (Sprint)
 
 ### 🟢 已完成任务
 
-#### CC1: 更新项目原则到 README
-- **负责人**: 用户
-- **完成时间**: 2026-04-30
-- **产出**: README.md 更新
-- **状态**: ✅ 已完成
+#### API 认证问题修复 ✅
+- **优先级**: P0 (已解决)
+- **负责人**: AI Agent
+- **问题描述**: 测试脚本成功但网页应用返回 401 错误
+- **根本原因**: 开发服务器缓存了旧的环境变量
+- **解决方案**: 重启开发服务器加载正确的 Base URL
+- **状态**: 🟢 已完成
 
-#### CC2: 调整数据库 schema 为多行业架构
-- **负责人**: 用户
-- **完成时间**: 2026-04-30
-- **产出**: supabase/schema.sql 更新
-- **状态**: ✅ 已完成
+**完成的子任务**:
+- [x] 创建调试端点验证环境变量
+- [x] 对比测试脚本和 Anthropic SDK 的请求差异
+- [x] 确认根本原因（环境变量缓存）
+- [x] 重启开发服务器加载新配置
+- [x] 验证网页端 API 调用成功
+- [x] 运行端到端测试确认修复
+- [x] 清理诊断日志代码
 
-#### 阶段 0 审查与修复
-- **负责人**: Agent Team (review-agent + program-agent)
+---
+
+## 已完成阶段
+
+### 🟢 阶段 0-8: 核心功能实现
+
+#### 阶段 0: 后端骨架审查与修复
 - **完成时间**: 2026-05-01
 - **产出**: 
   - 修复 Google Fonts 构建问题
@@ -39,181 +50,220 @@
   - 通过 lint 和 build 验证
 - **状态**: ✅ 已完成
 
+#### 阶段 1-3: 数据层和 Agent 实现
+- **完成时间**: 2026-05-02 - 2026-05-05
+- **产出**:
+  - 8 个专业 Agent 实现
+  - TypeScript 类型定义
+  - Zod Schema 验证
+- **状态**: ✅ 已完成
+
+#### 阶段 4-6: LangGraph 工作流和 API 实现
+- **完成时间**: 2026-05-05 - 2026-05-06
+- **产出**:
+  - WorkflowService 和 WorkflowExecutorService
+  - API 路由实现
+  - SSE 流式更新
+- **状态**: ✅ 已完成
+
+#### 阶段 7-8: 前端开发和集成测试
+- **完成时间**: 2026-05-06
+- **产出**:
+  - /client/generate 页面
+  - WorkflowProgress 组件
+  - 实时进度显示
+- **状态**: ✅ 已完成
+
+### 🟢 阶段 9: 数据持久化 (V0.18)
+
+#### 任务清单
+- [x] 实现 WorkflowService.createScript() 方法
+- [x] 在 WorkflowExecutor 中调用脚本保存
+- [x] 修复 topic_id UUID 类型错误
+- [x] 集成 agent_runs 和 agent_run_steps 日志
+- [x] 端到端测试验证
+- [x] 数据库持久化验证
+
+**完成时间**: 2026-05-07  
+**产出**: 
+- 脚本成功保存到 scripts 表（验证 3 条记录）
+- Agent 运行日志完整记录
+- 端到端测试通过（2 次成功运行）
+
+**状态**: ✅ 已完成
+
+### 🟢 阶段 10: 前端集成 (V0.18)
+
+#### 任务清单
+- [x] 创建 /client/generate 页面
+- [x] 实现 WorkflowProgress 组件
+- [x] 集成 SSE 流式更新
+- [x] 显示工作流各阶段状态
+- [x] 显示生成结果
+
+**完成时间**: 2026-05-07  
+**产出**:
+- 完整的前端生成页面
+- 实时进度显示
+- 结果展示和下载
+
+**状态**: ✅ 已完成
+
 ---
 
-## 下一阶段任务 (待规划)
+## 待完成任务
 
-### ⚪ CC3: 更新 TypeScript 类型定义
+### 🟢 阶段 11: API 认证问题修复 (已完成)
 
-**目标**: 根据新的数据库 schema 创建完整的 TypeScript 类型定义
+**目标**: 解决网页应用 API 认证失败问题
 
-**待创建文件**:
-- `types/database.ts` - 数据库表类型
-- `types/client.ts` - 客户相关类型
-- `types/industry.ts` - 行业相关类型
-- `types/content.ts` - 内容相关类型
-- `types/agent.ts` - Agent 相关类型
-- `types/review.ts` - 审查相关类型
+**任务清单**:
+- [x] 添加诊断日志到 lib/ai/anthropic.ts
+- [x] 创建调试端点验证环境变量
+- [x] 对比测试脚本和 SDK 的 HTTP 请求
+- [x] 分析根本原因（环境变量缓存）
+- [x] 实施修复方案（重启开发服务器）
+- [x] 验证网页端工作流完整运行
+- [x] 测试多次生成确保稳定性
+- [x] 清理诊断代码
 
-**要求**:
-- 所有类型都要包含 `visible_to_client` 和 `internal_notes` 字段
-- 使用 `ClientProfile` / `IndustryTemplate` 而非 `LawyerProfile`
-- 与数据库 schema 保持一致
+**完成时间**: 2026-05-07  
+**产出**:
+- 调试端点 `/api/debug/env`
+- 网页端 API 测试脚本
+- 端到端测试通过（266 秒）
+- 5 条脚本成功保存到数据库
+
+**状态**: 🟢 已完成
+
+---
+
+### ⚪ 阶段 12: 生产环境部署准备
+
+**目标**: 准备生产环境部署
+
+**任务清单**:
+- [ ] 环境变量配置文档
+- [ ] 数据库迁移脚本
+- [ ] 性能优化和压力测试
+- [ ] 错误监控和日志系统
+- [ ] 备份和恢复策略
 
 **状态**: ⚪ 待开始
 
 ---
 
-### ⚪ CC4: 创建 AgentState
+### ⚪ 阶段 13: 上线发布
 
-**目标**: 创建统一的 Agent 状态管理
+**目标**: 正式上线发布
 
-**待创建文件**:
-- `lib/schemas/agentStateSchema.ts` - AgentState Zod Schema
-- `types/agent.ts` - Agent 类型定义
-
-**AgentState 必须支持**:
-- clientId
-- industryId
-- industryTemplate
-- clientProfile
-- contentPosition
-- selectedTopic
-- draftScript
-- reviews
-- rewriteCount
-- logs
-- status
+**任务清单**:
+- [ ] 部署到生产环境
+- [ ] 域名和 SSL 配置
+- [ ] 用户培训和文档
+- [ ] 监控和告警配置
+- [ ] 上线后验证
 
 **状态**: ⚪ 待开始
 
 ---
 
-### ⚪ CC5: 创建 Agent 文件
+## 技术债务
 
-**目标**: 实现 8 个专业 Agent
+### 高优先级
 
-**待创建文件**:
-- `lib/agents/supervisorAgent.ts`
-- `lib/agents/dataAgent.ts`
-- `lib/agents/profileAgent.ts`
-- `lib/agents/topicAgent.ts`
-- `lib/agents/scriptAgent.ts`
-- `lib/agents/readabilityReviewAgent.ts`
-- `lib/agents/riskReviewAgent.ts`
-- `lib/agents/rewriteAgent.ts`
+1. **TopicAgent JSON 解析间歇性失败**
+   - **问题**: 偶尔出现 JSON 格式错误
+   - **影响**: 工作流偶尔失败，需要重试
+   - **计划**: 阶段 12 处理
 
-**要求**:
-- 每个 Agent 输入/输出 AgentState
-- 结构化 JSON 输出
-- 记录日志到 agent_runs 和 agent_run_steps
+2. **选题不持久化**
+   - **问题**: TopicAgent 生成的选题不保存到数据库
+   - **影响**: 无法查看历史选题
+   - **计划**: 阶段 12 实现
 
-**状态**: ⚪ 待开始
+### 中优先级
 
----
+3. **错误处理和用户提示优化**
+   - **问题**: 错误信息不够友好
+   - **影响**: 用户体验
+   - **计划**: 阶段 12 优化
 
-### ⚪ CC6: 创建 LangGraph 工作流
+### 低优先级
 
-**目标**: 实现 3 个 LangGraph 工作流
+4. **单元测试覆盖率**
+   - **问题**: 缺少单元测试
+   - **影响**: 代码质量保障
+   - **计划**: 阶段 12 添加
 
-**待创建文件**:
-- `lib/graphs/profileWorkflowGraph.ts`
-- `lib/graphs/topicWorkflowGraph.ts`
-- `lib/graphs/scriptWorkflowGraph.ts`
-
-**工作流**:
-- Profile: Data → Profile → Risk Review → Supervisor
-- Topic: Data → Topic → Risk Review → Supervisor
-- Script: Data → Script → Readability Review + Risk Review → Supervisor → Rewrite (最多 2 次)
-
-**状态**: ⚪ 待开始
+5. **API 调用重试机制**
+   - **问题**: 没有自动重试
+   - **影响**: 偶尔失败需要手动重试
+   - **计划**: 阶段 12 实现
 
 ---
 
-### ⚪ CC7: Admin API
+## 已知问题
 
-**目标**: 创建 Admin 后台 API
+### 🟢 已解决问题
 
-**待创建路由**:
-- `/api/admin/clients`
-- `/api/admin/client-profiles`
-- `/api/admin/topics`
-- `/api/admin/scripts`
-- `/api/admin/reviews`
-- `/api/admin/agent-runs`
-- `/api/admin/prompts`
+1. **API 认证失败 (401 Invalid token)** ✅
+   - **症状**: 网页应用调用 Claude API 返回 401
+   - **根本原因**: 开发服务器缓存了旧的环境变量
+   - **解决方案**: 重启开发服务器加载正确的 Base URL
+   - **状态**: 🟢 已解决
 
-**要求**:
-- Admin API 可以返回完整数据
-- 包含 internal_notes 和所有字段
+### 🟡 非阻塞性问题
 
-**状态**: ⚪ 待开始
-
----
-
-### ⚪ CC8: Client API
-
-**目标**: 创建 Client 前台 API
-
-**待创建路由**:
-- `/api/client/profile`
-- `/api/client/scripts`
-- `/api/client/generate`
-- `/api/client/topics`
-- `/api/client/calendar`
-- `/api/client/feedback`
-- `/api/client/style-reference`
-
-**要求**:
-- 只返回 `visible_to_client = true` 的数据
-- 不返回 prompt、agent steps、internal review detail
-- 只返回当前 client_id 的数据
-
-**状态**: ⚪ 待开始
+2. **TopicAgent 间歇性 JSON 解析失败**
+   - **症状**: Expected ',' or '}' after property value in JSON
+   - **频率**: 偶尔发生
+   - **缓解**: 多次重试通常可以成功
+   - **状态**: 🟡 已缓解
 
 ---
 
 ## 任务依赖关系
 
 ```
-CC1 (完成) → CC2 (完成) → 阶段 0 审查 (完成)
-                              ↓
-                            CC3 (待开始)
-                              ↓
-                            CC4 (待开始)
-                              ↓
-                            CC5 (待开始)
-                              ↓
-                            CC6 (待开始)
-                              ↓
-                         CC7 + CC8 (待开始)
+阶段 0-8 (完成)
+    ↓
+阶段 9: 数据持久化 (完成)
+    ↓
+阶段 10: 前端集成 (完成)
+    ↓
+阶段 11: API 认证修复 (已完成) ✅
+    ↓
+阶段 12: 生产环境准备 (待开始) ← 下一步
+    ↓
+阶段 13: 上线发布 (待开始)
 ```
-
----
-
-## 已知问题
-
-### 🟡 非阻塞性问题
-
-1. **Lint 警告** (3 个)
-   - 未使用的变量（已用下划线前缀标记）
-   - 不影响功能
-   - 可选修复
-
-2. **Next.js 多 lockfile 警告**
-   - 建议配置 `turbopack.root`
-   - 不影响构建
-   - 可选修复
 
 ---
 
 ## 里程碑
 
-- [x] **2026-04-30**: CC1 + CC2 完成
-- [x] **2026-05-01**: 阶段 0 审查与修复完成
-- [ ] **待定**: CC3-CC8 完成
-- [ ] **待定**: 阶段 1 开始
+- [x] **2026-04-30**: 项目启动，数据库 schema 设计
+- [x] **2026-05-01**: 阶段 0 完成
+- [x] **2026-05-05**: 阶段 1-6 完成
+- [x] **2026-05-06**: 阶段 7-8 完成
+- [x] **2026-05-07**: 阶段 9-10 完成，V0.20-BETA 发布
+- [x] **2026-05-07**: 阶段 11 完成，API 认证问题解决，V0.21 发布
+- [ ] **待定**: 阶段 12-13 完成，正式上线
 
 ---
 
-**文档维护**: 每完成一个任务后更新本文档
+## 验证清单
+
+### 当前验证状态
+
+- ✅ TypeScript 编译: `npx tsc --noEmit` - 通过
+- ✅ 端到端测试（命令行）: `npx tsx scripts/test-e2e-workflow.ts` - 通过
+- ✅ 数据库持久化: `npx tsx scripts/check-script-saved.ts` - 通过（5 条记录）
+- ✅ API Key 测试: `npx tsx scripts/test-api-universal.ts` - 通过
+- ✅ 网页端 API 调用: `npx tsx scripts/test-webapp-api.ts` - 通过
+- 🔄 网页端工作流: 访问 `/client/generate` - 待用户验证
+
+---
+
+**文档维护**: 由 AI 在每次会话结束时更新

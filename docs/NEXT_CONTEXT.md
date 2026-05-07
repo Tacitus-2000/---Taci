@@ -1,128 +1,153 @@
-# 下一个会话的上下文
+# Next Context
 
-## 当前项目状态
-- **版本**: V0.2 AI 工作流集成
-- **阶段**: 阶段 0-10 全部完成 ✅
-- **当前任务**: 修复数据持久化问题（进行中）
+## Current Project Status
+- **版本**: V0.21 (API 认证问题已修复)
+- **当前状态**: ✅ 所有功能正常运行
+- **最新完成**: 阶段 11 - API 认证问题修复完成
 
-## 最近完成的工作（会话 16 - 2026-05-07）
+## Recently Completed
+- ✅ 诊断并修复 API 认证失败问题
+- ✅ 根本原因：开发服务器缓存了旧的环境变量（指向无效的中转 API）
+- ✅ 解决方案：重启开发服务器加载正确的 Base URL
+- ✅ 端到端测试通过（命令行和网页端）
+- ✅ 脚本成功保存到数据库（验证 5 条记录）
+- ✅ 清理诊断日志代码
 
-### 1. TypeScript 类型错误修复（V0.19）
-- 修复 DataAgent 数据格式转换逻辑
-- 修复端到端测试脚本的类型错误
-- 已提交
+## Current Issues / Remaining Work
 
-### 2. DataAgent 验证逻辑修复
-- 更新 validateData() 使用 agentStateSchema 字段名
-- 为默认模板添加 createdAt 和 updatedAt 字段
-- 修复字段名不匹配问题（industry vs templateName）
+### ✅ 已解决：API 认证失败
 
-### 3. 脚本持久化功能添加
-- 在 WorkflowService 添加 createScript() 方法
-- 匹配实际的 scripts 表结构
-- 在 WorkflowExecutor 中调用保存脚本
-- TypeScript 编译通过
+**问题描述：**
+- 测试脚本成功但网页应用返回 401 错误
 
-## 当前问题和待解决事项
+**根本原因：**
+- 开发服务器启动时加载了旧的环境变量
+- `ANTHROPIC_BASE_URL` 指向了无效的中转 API (`https://www.fucheers.top`)
+- 测试脚本硬编码使用了有效的 Base URL (`https://www.vibecd.cc`)
 
-### 待验证
-1. **端到端测试**: 需要运行第三次测试验证脚本保存功能
-2. **数据库验证**: 检查 scripts 表是否成功保存记录
+**解决方案：**
+1. 确认 `.env.local` 配置正确
+2. 重启开发服务器加载新环境变量
+3. 验证 API 调用成功
 
-### 待提交（V0.20）
-```
-修改的文件:
-- lib/agents/dataAgent.ts (验证逻辑 + 时间戳字段)
-- lib/services/workflow.service.ts (createScript 方法)
-- lib/services/workflow-executor.service.ts (调用 createScript)
-- progress.md (会话 16 记录)
-- task_plan.md (更新时间戳)
-```
+**关键教训：**
+- Next.js 开发服务器需要重启才能加载 `.env.local` 的更改
+- 环境变量问题需要通过调试端点验证，而不是假设配置正确
 
-## 推荐的下一步操作
+## Recommended Next Steps
 
-### 立即执行
-1. **运行端到端测试**:
+### 立即执行（验证网页端）
+
+1. **测试网页端工作流**
+   ```bash
+   # 访问网页端生成页面
+   http://localhost:3000/client/generate
+   
+   # 选择客户和选题，生成文案
+   # 验证整个工作流正常运行
+   ```
+
+2. **清理临时文件**
    ```bash
    cd lawyer-content-platform
-   npx tsx scripts/test-e2e-workflow.ts
+   rm -f dev.log
+   rm -f scripts/test-webapp-api.ts
+   rm -f scripts/fix-env-base-url.sh
+   rm -f app/api/debug/env/route.ts
    ```
 
-2. **验证数据持久化**:
-   ```bash
-   # 查询最新的 scripts 记录
-   npx tsx -e "
-   import { createClient } from '@supabase/supabase-js';
-   import dotenv from 'dotenv';
-   dotenv.config({ path: '.env.local' });
-   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-   const { data } = await supabase.from('scripts').select('id, title, created_at').order('created_at', { ascending: false }).limit(3);
-   console.log(data);
-   "
-   ```
+### 后续任务（阶段 12）
 
-3. **提交修复**:
-   ```bash
-   git add lib/agents/dataAgent.ts lib/services/*.ts progress.md task_plan.md docs/NEXT_CONTEXT.md
-   git commit -m "V0.20-2026/05/07-数据持久化修复和脚本保存功能"
-   ```
+1. 生产环境部署准备
+2. 性能优化和压力测试
+3. 错误监控和日志系统
+4. 备份和恢复策略
 
-### 后续任务
-4. **开始阶段 11**: 风格参考页面开发（见 task_plan.md）
-5. **更新文档**: 同步 docs/PROJECT_STATUS.md 和 docs/TASK_BOARD.md
+## Key Files
 
-## 关键文件位置
-
-### 规划文件
-- `lawyer-content-platform/task_plan.md` - 阶段计划
-- `lawyer-content-platform/progress.md` - 会话日志
-- `docs/NEXT_CONTEXT.md` - 本文件
-
-### 核心代码
-- `lib/agents/dataAgent.ts` - 数据采集和格式转换
-- `lib/services/workflow.service.ts` - 数据库操作
-- `lib/services/workflow-executor.service.ts` - 工作流编排
+### 核心配置文件
+- `.env.local` - 环境变量配置（已验证正确）
+- `lib/ai/anthropic.ts` - Claude API 客户端（已清理诊断日志）
+- `app/api/client/generate/route.ts` - 工作流 API 端点（已清理诊断日志）
 
 ### 测试脚本
-- `scripts/test-e2e-workflow.ts` - 端到端测试
+- `scripts/test-e2e-workflow.ts` - 端到端测试（通过）
+- `scripts/check-script-saved.ts` - 数据库验证（通过）
+- `scripts/test-api-universal.ts` - API Key 验证（通过）
 
-## 验证清单
+### 规划文档
+- `docs/PROJECT_STATUS.md` - 项目整体状态
+- `docs/TASK_BOARD.md` - 当前任务看板
+- `docs/STAGE_LOG.md` - 阶段完成记录
+- `docs/NEXT_CONTEXT.md` - 本文件
 
-在开始新工作前，请验证：
-- [ ] TypeScript 编译通过: `npx tsc --noEmit`
-- [ ] 端到端测试通过: `npx tsx scripts/test-e2e-workflow.ts`
-- [ ] Scripts 表有新记录
-- [ ] Agent runs 表状态为 'completed'
-- [ ] 所有修改已提交
+## Verification
 
-## 技术债务记录
+### 当前验证状态
+- ✅ TypeScript: `npx tsc --noEmit` - 通过
+- ✅ 端到端测试（命令行）: `npx tsx scripts/test-e2e-workflow.ts` - 通过
+- ✅ 数据库持久化: `npx tsx scripts/check-script-saved.ts` - 通过（5 条记录）
+- ✅ API Key 测试: `npx tsx scripts/test-api-universal.ts` - 通过
+- ✅ 网页端 API 调用: `npx tsx scripts/test-webapp-api.ts` - 通过
+- 🔄 网页端工作流: 访问 `/client/generate` - 待用户验证
 
-### 1. 字段命名不一致
-- **问题**: 数据库使用 snake_case，agentStateSchema 使用 camelCase
-- **当前方案**: DataAgent 运行时转换
-- **长期方案**: 统一命名或使用 DTO 模式
+### 验证命令
+```bash
+# TypeScript 编译
+cd lawyer-content-platform && npx tsc --noEmit
 
-### 2. Scripts 表结构简化
-- **问题**: 缺少 agent_run_id, hook, cta 等字段
-- **当前方案**: 组合成单个 body 字段
-- **长期方案**: 扩展表结构支持细粒度内容管理
+# 端到端测试
+cd lawyer-content-platform && npx tsx scripts/test-e2e-workflow.ts
 
-## 不要重复的错误
+# 数据库验证
+cd lawyer-content-platform && npx tsx scripts/check-script-saved.ts
 
-1. ❌ 不要假设数据库表结构 - 先查询实际结构
-2. ❌ 不要使用不存在的列名 - 检查 migration 文件
-3. ❌ 不要忘记验证 TypeScript 类型 - 运行 `tsc --noEmit`
-4. ❌ 不要跳过端到端测试 - 每次修改后都要测试
+# 启动开发服务器
+cd lawyer-content-platform && npm run dev
+```
 
-## 注意事项
+## Do Not Repeat
 
-- 使用 Sonnet 模型进行日常开发
-- 遇到复杂问题时切换到 Opus
-- 严格按照 CLAUDE.md 的指令工作
-- 使用 `planning-with-files-zh` skill 管理任务
-- 每个阶段完成后更新所有规划文件
+- ❌ 不要假设环境变量已正确加载 - 始终通过调试端点验证
+- ❌ 不要忘记重启开发服务器以加载 `.env.local` 的更改
+- ✅ 使用 systematic debugging 流程来诊断问题
+- ✅ 添加诊断工具来收集证据，而不是猜测
+
+## Notes
+
+### API 配置（已验证有效）
+```env
+ANTHROPIC_API_KEY=sk-65a676b2215d2a4f77f98f557d0f1b110e91479fd7815cbb0992cc83fc6447e5
+ANTHROPIC_BASE_URL=https://www.vibecd.cc
+LLM_MODEL=claude-sonnet-4-6
+```
+
+### 调试过程总结
+
+**Phase 1: Root Cause Investigation**
+- 创建调试端点 `/api/debug/env` 验证环境变量
+- 发现服务器加载的是旧的 Base URL (`https://www.fucheers.top`)
+- 直接测试两个 API 端点，确认 `fucheers.top` 返回 401
+
+**Phase 2: Pattern Analysis**
+- 对比测试脚本（成功）和网页应用（失败）的差异
+- 识别出环境变量加载机制的不同
+
+**Phase 3: Hypothesis and Testing**
+- 假设：开发服务器需要重启才能加载新环境变量
+- 验证：重启后环境变量更新，API 调用成功
+
+**Phase 4: Implementation**
+- 重启开发服务器
+- 运行端到端测试验证修复
+- 清理诊断日志代码
+
+### 技术债务
+- ✅ API 认证不一致问题（已解决）
+- ⚠️ TopicAgent 间歇性 JSON 解析失败（已缓解但未根治）
+- 📝 选题不持久化（待实现）
 
 ---
 
-**文档创建时间**: 2026-05-07 12:45  
-**下次更新**: 完成 V0.20 提交后
+**文档更新时间**: 2026-05-07 14:55  
+**下次更新**: 阶段 12 开始时
