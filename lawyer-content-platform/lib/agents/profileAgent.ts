@@ -47,11 +47,22 @@ export class ProfileAgent {
       const professionalFields = contentPosition?.professionalFields || contentPosition?.professional_fields || contentPosition?.expertise_areas;
       const targetAudience = contentPosition?.targetAudience || contentPosition?.target_audience;
 
+      // 调试日志
+      console.log('[ProfileAgent] professionalFields 类型:', typeof professionalFields, 'isArray:', Array.isArray(professionalFields));
+      console.log('[ProfileAgent] professionalFields 值:', professionalFields);
+      console.log('[ProfileAgent] targetAudience 类型:', typeof targetAudience, 'isArray:', Array.isArray(targetAudience));
+      console.log('[ProfileAgent] targetAudience 值:', targetAudience);
+
       if (professionalFields && Array.isArray(professionalFields)) {
         logs.push(`[ProfileAgent] 专业领域: ${professionalFields.join('、')}`);
+      } else if (professionalFields) {
+        logs.push(`[ProfileAgent] 专业领域: ${String(professionalFields)}`);
       }
+
       if (targetAudience && Array.isArray(targetAudience)) {
         logs.push(`[ProfileAgent] 目标受众: ${targetAudience.join('、')}`);
+      } else if (targetAudience) {
+        logs.push(`[ProfileAgent] 目标受众: ${String(targetAudience)}`);
       }
 
       logs.push('[ProfileAgent] 档案生成完成');

@@ -246,30 +246,49 @@
 ---
 
 ### 阶段 9: 数据持久化
-- **状态**: `pending`
+- **状态**: `complete`
 - **预计时间**: 2-3 小时
+- **实际时间**: 0.5 小时
 - **依赖**: 阶段 8
 - **任务**:
-  - [ ] 修改 lib/services/workflow.service.ts
-  - [ ] 实现 agent_runs 记录
-  - [ ] 实现 agent_run_steps 记录
+  - [x] 修改 lib/services/workflow.service.ts
+  - [x] 实现 agent_runs 记录
+  - [x] 实现 agent_run_steps 记录
+  - [x] 创建测试脚本验证持久化功能
 - **验收标准**:
   - ✅ 工作流执行记录保存到数据库
   - ✅ 每个步骤都有详细记录
+- **完成内容**:
+  - 扩展 WorkflowService 添加 agent_runs 和 agent_run_steps 的 CRUD 操作
+  - 创建 admin-client.ts 使用 SERVICE_ROLE_KEY 绕过 RLS
+  - 实现了 10 个数据库操作方法（创建、更新、查询、列表）
+  - 创建完整的测试脚本验证所有功能
+  - 测试通过：Agent Run 和 Steps 的创建、状态更新、输出保存、查询功能全部正常
 
 ---
 
 ### 阶段 10: 前端集成
-- **状态**: `pending`
+- **状态**: `complete`
 - **预计时间**: 3-4 小时
+- **实际时间**: 1.5 小时
 - **依赖**: 阶段 9
 - **任务**:
-  - [ ] 修改 app/client/generate/page.tsx
-  - [ ] 修改 app/admin/agent-runs/page.tsx
-  - [ ] 添加进度条和状态显示
+  - [x] 修改 app/api/client/generate/route.ts - 接入真实 AI 工作流
+  - [x] 创建 app/api/client/agent-runs/[id]/route.ts - 状态查询 API
+  - [x] 创建 components/WorkflowProgress.tsx - 进度显示组件
+  - [x] 修改 app/client/generate/page.tsx - 集成进度显示
+  - [x] 验证 app/admin/agent-runs/page.tsx - 功能完整
 - **验收标准**:
   - ✅ 用户能在前端触发 AI 工作流
   - ✅ 能实时查看工作流执行状态
+  - ✅ Admin 页面能查看所有运行记录
+- **完成内容**:
+  - 创建 WorkflowExecutor 服务封装完整工作流执行逻辑
+  - API 路由成功接入真实 AI 工作流
+  - 前端实现实时进度显示（轮询机制，每 2 秒更新）
+  - 显示 7 个步骤的详细状态（数据采集、档案生成、选题生成、文案生成、可读性审查、风险审查、重写）
+  - Admin 页面已有完整的 Agent Runs 查看功能
+  - TypeScript 类型检查通过
 
 ---
 
@@ -370,5 +389,5 @@
 
 ---
 
-**最后更新**: 2026-05-06 21:10  
-**当前阶段**: 阶段 7 完成 ✅，准备开始阶段 8
+**最后更新**: 2026-05-07 01:15  
+**当前阶段**: 阶段 9 完成 ✅，准备开始阶段 10

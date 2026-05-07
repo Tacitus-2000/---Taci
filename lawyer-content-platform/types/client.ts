@@ -223,6 +223,7 @@ export interface GenerateScriptRequest {
  */
 export interface GenerateScriptResponse {
   script_id: string;
+  agent_run_id: string;
   title: string;
   body: string;
   usage_advice: string | null;

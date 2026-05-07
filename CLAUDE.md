@@ -12,8 +12,9 @@ Default skill responsibilities:
 
 1. `planning-with-files`
    - Daily task planning
+   - Stage summaries
    - Progress tracking
-   - Short execution checklist
+   - Handoff context for future conversations
 
 2. `superpower / systematic-debugging`
    - Bug fixing
@@ -57,189 +58,119 @@ Do not automatically:
 
 ---
 
-## Skill Usage Rules
+## Model Usage Rules
 
-### 1. `planning-with-files`
+Prefer Sonnet as the daily implementation model.
 
-Use for daily task planning and progress tracking.
+Use Opus for:
+- architecture planning
+- complex debugging
+- authentication and permission logic
+- Supabase RLS
+- database schema design
+- important implementation affecting multiple modules
+- high-risk changes
 
-Use when:
-- starting a task with more than one step
-- fixing a bug that may touch multiple files
-- implementing a feature
-- tracking progress across several edits
-
-Rules:
-- Keep plans short.
-- Prefer checklist format.
-- Do not write long planning documents unless requested.
-- Update progress only after meaningful milestones.
-- Do not use planning as a substitute for reading code or verifying results.
-
----
-
-### 2. `superpower / systematic-debugging`
-
-Use for bug fixing.
-
-Required process:
-1. Read relevant files.
-2. Locate the actual failure point.
-3. List likely causes.
-4. Verify causes with evidence from code, logs, terminal output, browser behavior, or database results.
-5. Modify only after evidence is found.
-6. Make the smallest safe fix.
-7. Check all related call sites.
-
-Do not:
-- guess the root cause
-- modify code before reading relevant files
-- refactor unrelated code
-- fix only the surface symptom
-
----
-
-### 3. `superpower / verification-before-completion`
-
-Use after every code change.
-
-Do not claim completion before verification.
-
-Report:
-- TypeScript result
-- Lint result
-- Build result
-- Playwright result, if browser behavior is involved
-- Supabase/Postgres result, if database work is involved
-- Remaining risks
-
----
-
-### 4. `gstack / plan-eng-review`
-
-Use only for large direction, complex tasks, or architecture decisions.
-
-Use when:
-- the task affects multiple modules
-- the task changes data flow
-- authentication or permission architecture may be affected
-- database structure may need redesign
-- API boundaries are unclear
-- frontend/backend responsibility is unclear
-- the solution may require refactoring
-- the user asks for architecture review, engineering review, or plan review
-
-Rules:
-- Use it before implementation, not after.
-- Keep the review concise.
-- Output practical recommendations.
-- Do not create a multi-agent team.
-- Do not invoke other gstack roles unless explicitly requested.
-- Do not turn small bug fixes into architecture projects.
-
-Expected output:
-1. Current problem framing
-2. Architecture impact
-3. Recommended approach
-4. Files/modules likely affected
-5. Risks and edge cases
-6. Verification plan
-7. Whether implementation should proceed
-
----
-
-### 5. `supabase-postgres-best-practices`
-
-Use only when the task involves:
-- Supabase
-- PostgreSQL
-- SQL
-- migrations
+Avoid Haiku for:
+- coding
+- debugging
+- database changes
+- authentication flow
 - RLS
-- schema
-- tables
-- columns
-- indexes
-- constraints
-- database functions
-- backend database access logic
+- architecture decisions
+- important implementation
 
-Rules:
-- Do not guess table names.
-- Do not guess column names.
-- Do not modify RLS casually.
-- Never expose service role keys to client-side code.
-- For RLS changes, explain:
-  - who can read
-  - who can insert
-  - who can update
-  - who can delete
-  - how tenant/client isolation is enforced
+If the current runtime model appears to be Haiku, stop before making important code changes and ask the user to switch to Sonnet or Opus.
+
+Recommended model usage:
+
+- Normal coding: Sonnet
+- Normal bug fixing: Sonnet
+- Complex bug root cause analysis: Opus preferred
+- Architecture planning: Opus preferred
+- Database/RLS design: Opus preferred
+- Browser verification summary: Sonnet
+- Simple formatting or short summaries: Haiku allowed only if no code or architecture decision is involved
 
 ---
 
-### 6. `microsoft/playwright-cli`
+## `planning-with-files` Rules
 
-Use only when browser behavior must be verified, including:
-- login flow
-- redirects
-- cookies
-- sessions
-- API response inspection
-- console errors
-- network requests
-- page runtime errors
-- blank pages
-- `Unexpected token '<'`
-- login succeeds but page state is wrong
-- one page works but another page fails
+Use `planning-with-files` for daily task planning, stage tracking, and handoff context.
 
-For `Unexpected token '<'`, inspect:
-1. failed request URL
-2. status code
-3. content-type
-4. response body
-5. whether HTML was returned
-6. whether it is a 404 page, login page, middleware redirect, or Next.js error page
+The goal is not only to create a plan, but to preserve project context for future conversations.
 
----
+Maintain these files:
 
-## Default Execution Flow
+1. `docs/PROJECT_STATUS.md`
+   - Overall project status
+   - Current progress
+   - Completed modules
+   - Active module
+   - Main risks
+   - Next stage goal
 
-For normal development tasks:
+2. `docs/STAGE_LOG.md`
+   - Append a summary after each completed stage
+   - Include goal, completed work, changed files, verification results, remaining issues, and next step
 
-1. Use `planning-with-files` to create a short plan.
-2. Read relevant files.
-3. If fixing a bug, use `superpower / systematic-debugging`.
-4. If the task is large or architectural, use `gstack / plan-eng-review` before implementation.
-5. If database work is involved, use `supabase-postgres-best-practices`.
-6. Make the smallest safe change.
-7. Run available checks.
-8. If browser behavior is involved, use `microsoft/playwright-cli`.
-9. Use `superpower / verification-before-completion`.
-10. Update the planning file with results and remaining risks.
-11. Report evidence.
+3. `docs/NEXT_CONTEXT.md`
+   - Short handoff document for the next conversation
+   - Must be concise and practical
+   - Should allow the next Claude Code session to continue without re-explaining everything
 
-For small one-file changes:
-- Planning may be very short.
-- Do not use gstack.
+4. `docs/TASK_BOARD.md`
+   - Current tasks
+   - Completed tasks
+   - In-progress tasks
+   - Blocked items
+   - Risks
+
+When starting a stage:
+- Read existing planning files first.
+- Create missing files if needed.
+- Write a short executable plan.
 - Do not over-document.
-- Still verify before completion.
+- Do not start coding before the plan is clear.
 
-For large direction or architecture tasks:
-- Use `gstack / plan-eng-review`.
-- Do not implement until the scope and risks are clear.
-- Keep the plan concise and executable.
+When finishing a stage:
+- Update all planning files.
+- Append to `docs/STAGE_LOG.md`.
+- Refresh `docs/NEXT_CONTEXT.md`.
+- Update `docs/TASK_BOARD.md`.
+- Record verification results.
+- Record remaining risks.
+- Record what the next session should do first.
 
----
+`docs/NEXT_CONTEXT.md` should include:
 
-## Mandatory Checks After Code Changes
+```md
+# Next Context
 
-After every code change, inspect `package.json` and run available checks.
+## Current Project Status
+- ...
 
-Prefer:
+## Recently Completed
+- ...
 
-```bash
-npm run typecheck
-npm run lint
-npm run build
+## Current Issues / Remaining Work
+- ...
+
+## Recommended Next Steps
+1. ...
+
+## Key Files
+- ...
+
+## Verification
+- TypeScript:
+- Lint:
+- Build:
+- Playwright:
+- Supabase/Postgres:
+
+## Do Not Repeat
+- ...
+
+## Notes
+- ...

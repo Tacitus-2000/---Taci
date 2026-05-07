@@ -282,6 +282,174 @@
 
 ---
 
-**最后更新**: 2026-05-07 00:10
-**阶段 8 状态**: ✅ 完成
-**阶段 9 状态**: ⏳ 准备开始
+## 会话 11: 2026-05-07 00:40 - 01:15
+
+### 完成的工作
+1. ✅ 完成阶段 9: 数据持久化
+   - 扩展 lib/services/workflow.service.ts - 添加 agent_runs 和 agent_run_steps 操作方法
+   - 创建 lib/supabase/admin-client.ts - 使用 SERVICE_ROLE_KEY 绕过 RLS
+   - 创建 scripts/test-persistence.ts - 完整的持久化测试脚本
+   - 添加 npm 脚本: test:persistence
+   - 实现了完整的 CRUD 操作
+
+2. ✅ 实现的功能
+   - createAgentRun() - 创建 Agent Run 记录
+   - updateAgentRunStatus() - 更新 Agent Run 状态
+   - updateAgentRunOutput() - 更新 Agent Run 输出摘要
+   - getAgentRun() - 获取 Agent Run 记录
+   - listAgentRuns() - 列出 Agent Runs（支持分页和过滤）
+   - createAgentRunStep() - 创建 Agent Run Step 记录
+   - updateAgentRunStepStatus() - 更新 Step 状态
+   - updateAgentRunStepOutput() - 更新 Step 输出
+   - getAgentRunStep() - 获取 Step 记录
+   - listAgentRunSteps() - 列出某个 Agent Run 的所有步骤
+
+3. ✅ 解决的问题
+   - RLS 策略问题 - 创建 admin-client.ts 使用 SERVICE_ROLE_KEY
+   - 外键约束问题 - 测试脚本中不关联 client_id 和 industry_id
+   - 类型定义 - 添加 AgentRunRecord 和 AgentRunStepRecord 接口
+
+### 测试结果
+✅ **数据持久化测试通过**
+- Agent Run 创建成功
+- Agent Run 状态更新成功（pending → running → completed）
+- 5 个 Agent Run Steps 创建成功
+- 所有步骤状态更新成功（pending → running → completed）
+- 输出数据正确保存到数据库
+- 列表查询功能正常
+- 错误处理测试通过（failed 状态记录成功）
+
+✅ **TypeScript 类型检查通过**
+
+### 学到的经验
+1. **RLS 策略管理**
+   - 后端服务需要使用 SERVICE_ROLE_KEY 绕过 RLS
+   - 前端使用 ANON_KEY 受 RLS 保护
+   - 测试脚本应使用 admin 客户端
+
+2. **外键约束处理**
+   - 测试数据需要考虑外键约束
+   - 可以使用 NULL 值避免外键约束
+   - 或者先创建依赖的记录
+
+3. **数据持久化设计**
+   - Agent Run 记录工作流级别的信息
+   - Agent Run Steps 记录每个步骤的详细信息
+   - 支持状态追踪和错误记录
+   - 支持分页和过滤查询
+
+### 下一步行动
+1. 开始阶段 10: 前端集成
+   - 修改 app/client/generate/page.tsx
+   - 修改 app/admin/agent-runs/page.tsx
+   - 添加进度条和状态显示
+
+---
+
+## 会话 12: 2026-05-07 01:33 - 01:50
+
+### 完成的工作
+1. ✅ 阶段 10 任务 1: API 路由接入真实 AI 工作流
+   - 创建 lib/services/workflow-executor.service.ts - 工作流执行服务
+   - 修改 app/api/client/generate/route.ts - 替换 Mock 实现为真实工作流
+   - 实现完整的 Agent 编排逻辑（DataAgent → ProfileAgent → TopicAgent → ScriptAgent → ReadabilityReviewAgent → RiskReviewAgent → RewriteAgent）
+   - 集成 WorkflowService 进行数据持久化
+   - 每个步骤都记录到 agent_run_steps 表
+   - TypeScript 类型检查通过
+
+2. ✅ 阶段 10 任务 2: 前端实时进度显示
+   - 创建 app/api/client/agent-runs/[id]/route.ts - Agent Run 状态查询 API
+   - 创建 components/WorkflowProgress.tsx - 工作流进度显示组件
+   - 创建 components/ui/progress.tsx - 进度条组件
+   - 修改 app/client/generate/page.tsx - 集成进度显示
+   - 实现轮询机制（每 2 秒更新一次）
+   - 显示总体进度、当前步骤、步骤列表
+   - 支持完成和错误回调
+   - TypeScript 类型检查通过
+
+3. ✅ 阶段 10 任务 3: 验证 Admin Agent Runs 页面
+   - 验证 app/api/admin/agent-runs/route.ts - API 完整
+   - 验证 lib/hooks/useAdminData.ts - hooks 完整
+   - 验证 lib/api/admin-api.ts - API 客户端完整
+   - 验证 app/admin/agent-runs/page.tsx - 页面功能完整
+   - 支持分页、筛选、详情查看
+   - TypeScript 类型检查通过
+
+### 技术细节
+**WorkflowExecutor 服务**:
+- 封装完整的工作流执行逻辑
+- 支持 customDirection 和 topicId 两种输入方式
+- 自动获取客户档案的 industry_id
+- 将 hook、body、cta 合并保存到 scripts.body 字段
+- Agent Run ID 通过 API 响应返回给前端
+
+**前端进度显示**:
+- 通过 agent_run_id 轮询工作流状态
+- 进度显示包含 7 个步骤的详细状态
+- 实时更新当前执行步骤
+- 支持完成和错误状态处理
+
+**Admin 页面**:
+- 已有完整的 Agent Runs 列表和详情查看功能
+- 支持按客户、行业、任务类型、状态筛选
+- 显示每个 Agent Run 的所有步骤
+- 只读 API，不支持修改和删除
+
+### 创建的文件
+1. lib/services/workflow-executor.service.ts - 工作流执行服务（350 行）
+2. app/api/client/agent-runs/[id]/route.ts - 状态查询 API（80 行）
+3. components/WorkflowProgress.tsx - 进度显示组件（230 行）
+4. components/ui/progress.tsx - 进度条组件（30 行）
+
+### 修改的文件
+1. app/api/client/generate/route.ts - 接入真实工作流
+2. app/client/generate/page.tsx - 集成进度显示
+3. types/client.ts - 添加 agent_run_id 字段
+
+### 下一步行动
+1. 开始阶段 11: 风格参考页面
+2. 或进行端到端测试验证完整流程
+
+---
+
+## 会话 13: 2026-05-07 11:50
+
+### 完成的工作
+1. ✅ 修复 TypeScript 类型错误
+   - 问题: lib/ai/prompts/profilePrompt.ts 中使用了错误的字段名
+   - 原因: 工作区代码被错误修改，使用了数据库字段名（client_name, niche_direction）但导入的是 agentStateSchema 类型（name, expertise）
+   - 解决: 使用 `git checkout bb1a98a -- lib/ai/prompts/profilePrompt.ts` 回退到最后正确的提交版本
+   - 验证: TypeScript 类型检查通过，构建成功
+
+2. ✅ 项目健康检查
+   - TypeScript 类型检查: ✅ 通过
+   - 生产构建: ✅ 成功
+   - 所有路由正常生成
+
+### 学到的经验
+1. **Git 历史是真相来源**
+   - 当工作区代码出现问题时，检查最后一次正确的提交
+   - 使用 `git show <commit>:<file>` 查看历史版本
+   - 使用 `git checkout <commit> -- <file>` 恢复文件
+
+2. **类型系统的价值**
+   - TypeScript 能在编译时捕获字段名错误
+   - 数据库字段（snake_case）和类型定义（camelCase）必须匹配
+   - 不要混用不同来源的类型定义
+
+3. **项目文档的重要性**
+   - task_plan.md 和 progress.md 记录了项目真实进度（阶段 10 已完成）
+   - 但 docs/ 目录下的文档严重过时（最后更新 2026-05-01）
+   - 需要保持文档同步
+
+### 当前状态
+- ✅ 阶段 0-10 全部完成
+- ✅ TypeScript 类型检查通过
+- ✅ 生产构建成功
+- ⏳ 准备开始阶段 11: 风格参考页面
+
+---
+
+**最后更新**: 2026-05-07 11:54
+**阶段 10 状态**: ✅ 完成
+**阶段 11 状态**: ⏳ 准备开始

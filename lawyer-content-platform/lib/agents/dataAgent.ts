@@ -4,7 +4,7 @@
  */
 
 import type { AgentState, AgentStateUpdate } from '../schemas/agentStateSchema';
-import { getSupabaseClient } from '../supabase/client';
+import { getSupabaseAdmin } from '../supabase/admin';
 import type { ClientProfile, IndustryTemplate } from '@/types/database';
 
 /**
@@ -66,9 +66,15 @@ export class DataAgent {
    * @returns 行业模板数据
    */
   private async loadIndustryTemplate(industryId: string): Promise<Record<string, unknown>> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseAdmin();
 
     try {
+      // 如果 industryId 为空或无效，直接返回默认模板
+      if (!industryId || industryId.trim() === '') {
+        console.warn(`[DataAgent] industryId 为空，使用默认模板`);
+        return this.getDefaultIndustryTemplate(industryId);
+      }
+
       // 查询行业模板
       const { data, error } = await supabase
         .from('industry_templates')
@@ -153,7 +159,7 @@ export class DataAgent {
    * @returns 客户档案数据
    */
   private async loadClientProfile(clientId: string): Promise<Record<string, unknown>> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseAdmin();
 
     try {
       // 查询客户档案

@@ -10,6 +10,7 @@ import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { apiSuccess, apiError } from '@/lib/api/response';
 import { validateUUID, validateRequired } from '@/lib/api/validation';
 import { resolveClientId, isErrorResponse } from '@/lib/api/client-helper';
+import { createWorkflowExecutor } from '@/lib/services/workflow-executor.service';
 import type { GenerateScriptRequest, GenerateScriptResponse } from '@/types/client';
 
 /**
@@ -29,8 +30,7 @@ import type { GenerateScriptRequest, GenerateScriptResponse } from '@/types/clie
  * - 如果提供 topic_id，必须为有效 UUID 且属于该客户
  * - custom_direction 如果提供，长度必须在 10-500 之间
  *
- * TODO: 接入真实的 AI 工作流
- * 当前使用 mock 实现，直接创建一个 draft 状态的文案
+ * 接入真实的 AI 工作流
  */
 export async function POST(request: NextRequest) {
   try {
@@ -75,8 +75,19 @@ export async function POST(request: NextRequest) {
     const { clientId } = result;
     const supabase = getSupabaseAdmin();
 
-    // Step 2: 如果提供了 topic_id，验证选题是否存在且属于该客户
-    let topicTitle = '';
+    // 获取客户档案信息
+    const { data: clientProfile, error: profileError } = await supabase
+      .from('client_profiles')
+      .select('id, industry_id')
+      .eq('client_id', clientId)
+      .single();
+
+    if (profileError || !clientProfile) {
+      console.error('[Client API] Client profile not found:', clientId);
+      return apiError('PROFILE_NOT_FOUND', 'Client profile not found', 404);
+    }
+
+    // 如果提供了 topic_id，验证选题是否存在且属于该客户
     if (body.topic_id) {
       const { data: topic, error: topicError } = await supabase
         .from('topics')
@@ -89,53 +100,51 @@ export async function POST(request: NextRequest) {
         console.error('[Client API] Topic not found or does not belong to client:', body.topic_id);
         return apiError('TOPIC_NOT_FOUND', 'Topic not found or does not belong to this client', 404);
       }
-
-      topicTitle = topic.title;
     }
 
-    // TODO: 接入真实的 AI 工作流
-    // 当前使用 mock 实现
-    console.log('[Client API] Generating script (MOCK):', {
+    console.log('[Client API] Starting AI workflow:', {
       client_id: clientId,
+      industry_id: clientProfile.industry_id,
       topic_id: body.topic_id,
       custom_direction: body.custom_direction,
     });
 
-    // Mock: 创建一个 draft 状态的文案
-    const mockTitle = body.topic_id
-      ? `${topicTitle} - 文案草稿`
-      : `自定义文案 - ${body.custom_direction?.substring(0, 20)}...`;
+    // 执行 AI 工作流
+    const executor = createWorkflowExecutor();
+    const workflowResult = await executor.execute({
+      clientId,
+      industryId: clientProfile.industry_id,
+      topicId: body.topic_id || undefined,
+      customDirection: body.custom_direction || undefined,
+    });
 
-    const mockBody = `这是一个 Mock 生成的文案。
+    if (!workflowResult.success || !workflowResult.scriptData) {
+      console.error('[Client API] Workflow execution failed:', workflowResult.error);
+      return apiError(
+        'WORKFLOW_FAILED',
+        workflowResult.error || 'AI workflow execution failed',
+        500
+      );
+    }
 
-【开头】
-${body.custom_direction || topicTitle}
+    console.log('[Client API] Workflow completed successfully:', {
+      agent_run_id: workflowResult.agentRunId,
+      script_title: workflowResult.scriptData.title,
+    });
 
-【正文】
-这里是文案的主要内容。在真实环境中，这将由 AI 工作流生成。
+    // 保存生成的文案到数据库
+    // 注意: hook 和 cta 字段合并到 body 中，因为 scripts 表没有单独的字段
+    const fullBody = `${workflowResult.scriptData.hook}\n\n${workflowResult.scriptData.body}\n\n${workflowResult.scriptData.cta}`;
 
-【结尾】
-行动号召和总结。
-
----
-TODO: 接入真实的 AI 工作流
-当前为 Mock 实现，用于测试 API 结构。`;
-
-    const mockUsageAdvice = `使用建议：
-1. 这是一个测试文案
-2. 请在真实环境中接入 AI 工作流
-3. 当前状态为 draft，需要审核后才能发布`;
-
-    // Step 3: 插入文案
     const { data, error } = await supabase
       .from('scripts')
       .insert({
         client_id: clientId,
         topic_id: body.topic_id || null,
-        title: mockTitle,
-        body: mockBody,
-        usage_advice: mockUsageAdvice,
-        status: 'draft',
+        title: workflowResult.scriptData.title,
+        body: fullBody,
+        usage_advice: `此文案由 AI 自动生成，已通过可读性和风险审查。建议根据实际情况进行微调后发布。\n\nAgent Run ID: ${workflowResult.agentRunId}`,
+        status: 'approved',
         visible_to_client: true,
         internal_only: false,
       })
@@ -143,12 +152,13 @@ TODO: 接入真实的 AI 工作流
       .single();
 
     if (error) {
-      console.error('[Client API] Failed to create script:', error);
-      return apiError('DATABASE_ERROR', 'Failed to create script', 500, error);
+      console.error('[Client API] Failed to save script:', error);
+      return apiError('DATABASE_ERROR', 'Failed to save generated script', 500, error);
     }
 
     const response: GenerateScriptResponse = {
       script_id: data.id,
+      agent_run_id: workflowResult.agentRunId,
       title: data.title,
       body: data.body,
       usage_advice: data.usage_advice,

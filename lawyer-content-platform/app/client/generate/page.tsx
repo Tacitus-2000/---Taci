@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { WorkflowProgress } from '@/components/WorkflowProgress';
 import { Sparkles, Loader2, CheckCircle } from 'lucide-react';
 import type { GenerateScriptRequest } from '@/types/client';
 
@@ -37,6 +38,7 @@ type GenerateFormData = z.infer<typeof generateSchema>;
 export default function ClientGeneratePage() {
   const clientId = useClientId();
   const [generationSuccess, setGenerationSuccess] = useState(false);
+  const [agentRunId, setAgentRunId] = useState<string | null>(null);
   const { data: topics, isLoading: topicsLoading } = useTopics(clientId || '', { status: 'approved', limit: 100 });
   const generateScript = useGenerateScript();
 
@@ -72,11 +74,27 @@ export default function ClientGeneratePage() {
     };
 
     try {
-      await generateScript.mutateAsync(payload);
+      const result = await generateScript.mutateAsync(payload);
+      // 保存 agent_run_id 用于显示进度
+      setAgentRunId(result.agent_run_id);
       reset();
     } catch {
       // Error handled by mutation
     }
+  };
+
+  const handleWorkflowComplete = () => {
+    setGenerationSuccess(true);
+    setAgentRunId(null);
+    const timer = setTimeout(() => {
+      setGenerationSuccess(false);
+    }, 5000);
+    return () => clearTimeout(timer);
+  };
+
+  const handleWorkflowError = (error: string) => {
+    console.error('Workflow error:', error);
+    setAgentRunId(null);
   };
 
   return (
@@ -91,6 +109,15 @@ export default function ClientGeneratePage() {
             去选题需求
           </Link>
         </div>
+
+        {/* 工作流进度显示 */}
+        {agentRunId && (
+          <WorkflowProgress
+            agentRunId={agentRunId}
+            onComplete={handleWorkflowComplete}
+            onError={handleWorkflowError}
+          />
+        )}
 
         {/* 成功提示 */}
         {generationSuccess && (

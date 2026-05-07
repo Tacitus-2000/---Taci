@@ -16,6 +16,7 @@
     "test:risk-agent": "tsx scripts/test-risk-agent.ts",
     "test:rewrite-agent": "tsx scripts/test-rewrite-agent.ts",
     "test:workflow": "tsx scripts/test-workflow.ts",
+    "test:persistence": "tsx scripts/test-persistence.ts",
     "seed:test": "tsx scripts/seed-test-data.ts",
     "typecheck": "tsc --noEmit"
   },
