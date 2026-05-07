@@ -488,6 +488,49 @@ export class WorkflowService {
 
     return (data as AgentRunStepRecord[]) || [];
   }
+
+  // ==================== Scripts 操作 ====================
+
+  /**
+   * 创建 Script 记录
+   */
+  async createScript(params: {
+    clientId: string;
+    topicId?: string;
+    title: string;
+    hook?: string;
+    body?: string;
+    cta?: string;
+    visibleToClient?: boolean;
+  }): Promise<string> {
+    // 组合完整的文案内容
+    const fullBody = [
+      params.hook ? `【开场】\n${params.hook}\n` : '',
+      params.body || '',
+      params.cta ? `\n\n【行动号召】\n${params.cta}` : '',
+    ].filter(Boolean).join('\n');
+
+    const { data, error } = await this.supabase
+      .from('scripts')
+      .insert({
+        client_id: params.clientId,
+        topic_id: params.topicId || null,
+        title: params.title,
+        body: fullBody,
+        usage_advice: null,
+        status: 'draft',
+        visible_to_client: params.visibleToClient ?? true,
+        internal_only: false,
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create script: ${error.message}`);
+    }
+
+    return data.id;
+  }
 }
 
 /**

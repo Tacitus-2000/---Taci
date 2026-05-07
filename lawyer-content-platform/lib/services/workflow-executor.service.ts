@@ -155,12 +155,31 @@ export class WorkflowExecutor {
       console.log(`[WorkflowExecutor] 工作流完成，总耗时: ${(totalDuration / 1000).toFixed(2)}s`);
 
       if (currentStep === 'completed' && state.draftScript) {
-        // 成功完成
+        // 成功完成 - 保存脚本到数据库
         await this.workflowService.updateAgentRunOutput(
           agentRunId,
           `成功生成文案: ${state.draftScript.title}`,
           'completed'
         );
+
+        // 保存生成的脚本到 scripts 表
+        try {
+          // 注意：selectedTopic.id 是临时生成的字符串（如 "topic-1"），不是数据库中的 UUID
+          // 因为选题目前不持久化，所以 topicId 设置为 undefined（数据库中存储为 null）
+          const scriptId = await this.workflowService.createScript({
+            clientId: input.clientId,
+            topicId: undefined, // 选题不持久化，不保存 topic_id
+            title: state.draftScript.title,
+            hook: state.draftScript.hook,
+            body: state.draftScript.body,
+            cta: state.draftScript.cta,
+            visibleToClient: true,
+          });
+          console.log(`[WorkflowExecutor] 脚本已保存到数据库，ID: ${scriptId}`);
+        } catch (scriptError) {
+          console.error(`[WorkflowExecutor] 保存脚本失败:`, scriptError);
+          // 不阻止工作流完成，只记录错误
+        }
 
         return {
           success: true,

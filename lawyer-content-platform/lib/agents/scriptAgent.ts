@@ -122,7 +122,8 @@ export class ScriptAgent {
           console.log('[ScriptAgent] JSON 修复成功');
         } catch (thirdError) {
           console.error('[ScriptAgent] JSON 修复失败');
-          console.error('原始响应:', response.content.substring(0, 500));
+          console.error('原始响应长度:', response.content.length);
+          console.error('原始响应前 500 字符:', response.content.substring(0, 500));
           throw new Error(`无法解析 AI 响应为 JSON 格式: ${thirdError instanceof Error ? thirdError.message : '未知错误'}`);
         }
       }
