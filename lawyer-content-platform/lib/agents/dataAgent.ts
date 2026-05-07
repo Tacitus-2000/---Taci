@@ -99,18 +99,23 @@ export class DataAgent {
         return this.getDefaultIndustryTemplate(industryId);
       }
 
-      // 转换数据库记录为 Agent 使用的格式
+      // 转换数据库记录为 Agent 使用的格式（agentStateSchema.IndustryTemplate）
       return {
         id: data.id,
-        industryId: data.industry_id,
-        templateCode: data.template_code,
-        templateName: data.template_name,
-        contentColumns: data.default_content_columns || [],
-        reviewRules: data.review_rules || [],
-        promptTypes: data.default_prompt_types || [],
-        topicStructure: data.topic_structure || [],
-        riskRules: data.risk_rules || [],
-        version: data.version,
+        industry: data.template_name || '通用行业',
+        contentGuidelines: {
+          tone: data.review_rules?.[0]?.tone || '专业',
+          style: data.review_rules?.[0]?.style || '正式',
+          avoidTopics: data.risk_rules?.map((rule: any) => rule.keyword) || [],
+        },
+        platformSettings: {
+          preferredPlatforms: ['微信公众号'],
+          contentLength: {
+            short: '500-800字',
+            medium: '1000-1500字',
+            long: '2000-3000字',
+          },
+        },
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '未知错误';
@@ -127,28 +132,20 @@ export class DataAgent {
   private getDefaultIndustryTemplate(industryId: string): Record<string, unknown> {
     return {
       id: industryId,
-      industryId,
-      templateCode: 'default',
-      templateName: '默认模板',
-      contentColumns: [
-        { name: 'title', label: '标题', required: true },
-        { name: 'body', label: '正文', required: true },
-      ],
-      reviewRules: [
-        { type: 'length', min: 500, max: 3000 },
-        { type: 'readability', minScore: 60 },
-      ],
-      promptTypes: ['profile', 'topic', 'script', 'review'],
-      topicStructure: [
-        { section: 'hook', label: '开头', required: true },
-        { section: 'body', label: '正文', required: true },
-        { section: 'cta', label: '行动号召', required: false },
-      ],
-      riskRules: [
-        { type: 'compliance', severity: 'high' },
-        { type: 'accuracy', severity: 'medium' },
-      ],
-      version: '1.0.0',
+      industry: '默认行业',
+      contentGuidelines: {
+        tone: '专业',
+        style: '正式',
+        avoidTopics: [],
+      },
+      platformSettings: {
+        preferredPlatforms: ['微信公众号'],
+        contentLength: {
+          short: '500-800字',
+          medium: '1000-1500字',
+          long: '2000-3000字',
+        },
+      },
     };
   }
 
@@ -182,22 +179,25 @@ export class DataAgent {
         throw new Error(`客户档案为空 (clientId: ${clientId})`);
       }
 
-      // 转换数据库记录为 Agent 使用的格式
+      // 转换数据库记录为 Agent 使用的格式（agentStateSchema.ClientProfile）
       return {
         id: data.id,
         clientId: data.client_id,
-        industryId: data.industry_id,
-        clientName: data.client_name,
-        industryName: data.industry_name,
-        nicheDirection: data.niche_direction,
-        targetCustomer: data.target_customer,
-        advantages: data.advantages,
-        customerPainPoints: data.customer_pain_points,
-        toneStyle: data.tone_style,
-        tabooExpressions: data.taboo_expressions,
-        conversionGoal: data.conversion_goal,
-        internalNotes: data.internal_notes,
-        visibleToClient: data.visible_to_client,
+        name: data.client_name || '未命名客户',
+        expertise: data.niche_direction ? data.niche_direction.split('、').map((s: string) => s.trim()) : [],
+        experience: data.advantages || '暂无经验描述',
+        targetAudience: data.target_customer || '未指定目标客户',
+        contentPreferences: {
+          topics: data.niche_direction ? data.niche_direction.split('、').map((s: string) => s.trim()) : [],
+          platforms: ['微信公众号'],
+        },
+        previousContent: {
+          totalPosts: 0,
+          avgEngagement: 0,
+          topPerformingTopics: [],
+        },
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '未知错误';
